@@ -2,9 +2,8 @@ services:
   - type: web
     name: apollo-simulation
     env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn flask-backend.app:app"
-
+    buildCommand: "pip install -r flask-backend/requirements.txt"
+    startCommand: "gunicorn app:app"
     envVars:
       - key: FLASK_ENV
         value: production
@@ -12,5 +11,6 @@ services:
         value: "Apollo$ecureTyrePlatform@2025"
       - key: DATABASE_URL
         fromDatabase:
-          name: apollo_db
+          name: apollo-db  # must match the database name in Render dashboard
           property: connectionString
+    rootDir: flask-backend  # 👈 ADD THIS LINE
