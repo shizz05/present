@@ -18,19 +18,16 @@ app.secret_key = "Apollo$ecureTyrePlatform@2025"
 
 
 # ------------------------ PostgreSQL Connection ------------------------
-from urllib import parse as urlparse
 import os
 import psycopg2
 
-
 def get_db_connection():
-    return psycopg2.connect(
-        dbname="admin",
-        user="postgres",
-        password="apolloatr",
-        host="localhost",
-        port="5432",
-    )
+    db_url = os.environ.get("DATABASE_URL", "postgresql://flask_db_xaju_user:XeEDCYtCMifQ0sjvZjiXZO8W3iiBHstI@dpg-d1ljqere5dus73fpktu0-a/flask_db_xaju")
+
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+    return psycopg2.connect(db_url)
 
 
 # ------------------------ Send Reset Email ------------------------
