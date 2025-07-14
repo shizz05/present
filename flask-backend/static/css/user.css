@@ -1,0 +1,259 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Georgia', serif;
+  background: #b4b4b4;
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.bg-overlay {
+  background-image: url('../images/img2.png');
+  background-size: contain;
+  background-position: center bottom -80px;  /* pushed down */
+  background-repeat: no-repeat;
+  opacity: 0.15;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.header {
+  padding: 40px 20px 0;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 50px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #000528;
+  text-decoration: none;
+}
+
+.panel-container {
+  margin: 30px 20px;
+  padding: 30px;
+  border: 1px solid #9aa9bf;
+  background-color: #000528;  
+  border-radius: 12px;
+  color: #ffffff;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 200px;
+}
+
+.menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 20px;
+  font-size: 16px;
+  margin-bottom: 30px;
+}
+
+.menu button {
+  border: 1px dashed #ffffff;
+  padding: 8px 14px;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.main-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+}
+
+.left-panel {
+  flex: 1 1 100%;
+  max-width: 100%;
+}
+
+.right-panel {
+  flex: 1 1 100%;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.label {
+  font-size: 18px;
+  margin: 20px 0 8px;
+}
+
+.code-line,
+.dropdown {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  background: transparent;
+  border: 1px solid #ffffff;
+  color: #ffffff;
+  margin-bottom: 15px;
+  border-radius: 4px;
+}
+
+.dropdown option {
+  color: #000528;
+}
+
+.display-box {
+  border: 1px solid #ffffff;
+  padding: 8px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  background: #000528;
+  border-radius: 6px;
+}
+
+.submit-btn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 14px;
+  border: 1px dashed #ffffff;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  width: 100%;
+  border-radius: 4px;
+}
+
+.report {
+  border: 1px solid #ffffff;
+  padding: 20px;
+  font-size: 16px;
+  background: #000528;
+  border-radius: 10px;
+  color: white;
+  width: 100%;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.report-details p {
+  margin: 5px 0;
+}
+
+.graph-container {
+  background-color: #1c1c2e;
+  padding: 16px;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 700px;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.graph-title {
+  color: white;
+  text-align: center;
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.graph-wrapper {
+  position: relative;
+  width: 100%;
+  height: auto;
+}
+
+.graph-wrapper canvas {
+  width: 100% !important;
+  height: auto !important;
+}
+
+
+/* Responsive Breakpoints */
+@media (min-width: 768px) {
+  .left-panel {
+    flex: 1 1 45%;
+    max-width: 45%;
+  }
+
+  .right-panel {
+    flex: 1 1 50%;
+    max-width: 50%;
+  }
+
+  .report {
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .graph-box {
+    height: 400px;
+  }
+}
+/* Dropdown styling */
+select.dropdown {
+  background-color: #000528;
+  color: white;
+  border: 1px solid #444;
+  padding: 8px;
+  border-radius: 5px;
+  width: 100%;
+}
+
+select.dropdown option {
+  background-color: #000528;
+  color: white;
+}
+
+/* Suggestion box styling */
+.suggestion-box {
+  position: absolute;
+  background-color: #000528;
+  border: 1px solid #999;
+  z-index: 10;
+  width: 40%;
+  max-height: 100px;
+  overflow-y: auto;
+  color: white;
+}
+
+.suggestion-box div {
+  padding: 6px;
+  cursor: pointer;
+  color: white;
+}
+
+.suggestion-box div:hover {
+  background-color: #999;
+  color: #000528;
+}
+
+.logout-fixed {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1000;
+}
+
+.logout-fixed button {
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(255, 77, 77, 0.5);
+  transition: background-color 0.3s ease;
+}
+
+.logout-fixed button:hover {
+  background-color: #cc0000;
+}

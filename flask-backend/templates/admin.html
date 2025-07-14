@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <!-- ✅ Font Awesome for Icons -->
+ <!-- Font Awesome (CDN - works online) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
+<link href="https://fonts.cdnfonts.com/css/luke-owens" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
+
+  <style>
+    .autocomplete-box {
+      position: absolute;
+      background: #000528;
+      border: 1px solid #4a4646;
+      max-height: 150px;
+      overflow-y: auto;
+      z-index: 1000;
+      width: calc(100% - 40px);
+    }
+    .autocomplete-box div {
+      padding: 8px;
+      cursor: pointer;
+    }
+    .autocomplete-box div:hover {
+      background: #5c5b5b;
+    }
+    .left-panel {
+      position: relative;
+    }
+    @media (max-width: 768px) {
+  .panel-container {
+    flex-direction: column;
+    padding: 10px;
+  }
+
+  .left-panel, .right-panel {
+    width: 100%;
+  }
+
+  .right-panel {
+    margin-top: 20px;
+  }
+
+  .graph-container {
+    padding: 10px;
+    max-width: 100%;
+  }
+
+  .graph-title {
+    font-size: 0.9rem;
+  }
+}
+
+  </style>
+</head>
+
+<body>
+  <div class="bg-overlay"></div>
+  <!-- Header -->
+  <div class="header">
+    <div class="hamburger" onclick="toggleHamburgerMenu()">☰</div>
+    <h1>ADMIN</h1>
+  </div>
+
+ <div class="side-menu" id="sideMenu">
+  <button class="close-btn" onclick="toggleHamburgerMenu()">✕</button>
+
+<!-- Upload Compound File (.inc) -->
+<form action="{{ url_for('upload_inc_file') }}" method="POST" enctype="multipart/form-data" style="margin-bottom: 15px;">
+  <label for="inc_file" style="color: #ccc; display: block; margin-bottom: 5px;">
+    📁 Upload File
+  </label>
+  <input type="file" id="inc_file" name="inc_file" accept=".inc" required
+         style="width: 100%; padding: 5px; background: #1c1c2e; color: white; border: 1px solid #444; margin-bottom: 10px;">
+  <button type="submit" class="upload-btn">⬆ Upload</button>
+</form>
+
+<!-- Upload Points File (.inc) -->
+<form action="{{ url_for('upload_points_file') }}" method="POST" enctype="multipart/form-data">
+  <label for="points_file" style="color: #ccc; display: block; margin-bottom: 5px;">
+    📌 Upload Points.inc
+  </label>
+  <input type="file" id="points_file" name="points_file" accept=".inc" required
+         style="width: 100%; padding: 5px; background: #1c1c2e; color: white; border: 1px solid #444; margin-bottom: 8px;">
+  <button type="submit" class="upload-btn">⬆ Upload</button>
+</form>
+
+  <button class="menu-btn" onclick="toggleUpdate()"><i class="fas fa-edit"></i> Update</button>
+  <button class="menu-btn" onclick="toggleDelete()"><i class="fas fa-trash"></i> Delete</button>
+  <button class="menu-btn" onclick="toggleAccess()"><i class="fas fa-user-plus"></i> Access</button>
+  <button class="menu-btn" onclick="toggleSecurity()"><i class="fas fa-lock"></i> Security</button>
+  <button class="menu-btn" onclick="toggleControls()"><i class="fas fa-user-slash"></i> Controls</button>
+  <button class="menu-btn" onclick="exportCompound()"><i class="fas fa-file-export"></i> Export</button>
+  <button type="button" class="menu-btn" onclick="toggleDatabaseDropdown()">
+  <i class="fas fa-database"></i> Database
+<div id="databaseDropdown" class="dropdown-content" style="display: none; margin-left: 10px;">
+  <a href="{{ url_for('view_table', table='compounds') }}">Compounds</a>
+  <a href="{{ url_for('view_table', table='audit_logs') }}">Audit Logs</a>
+  <a href="{{ url_for('view_table', table='login_logs') }}">Login Logs</a>
+  <a href="{{ url_for('view_table', table='admins') }}">Admins</a>
+  <a href="{{ url_for('view_table', table='users') }}">Users</a>
+  <a href="{{ url_for('view_table', table='reset_tokens') }}">Reset Tokens</a>
+  <a href="{{ url_for('view_table', table='system_settings') }}">System Settings</a>
+   <a href="{{ url_for('view_table', table='graph_points') }}">graph_points</a>
+</div>
+</div>
+
+
+  <!-- Admin Panel Content -->
+  <div class="panel-container">
+    <div class="main-content">
+      <!-- Left Panel -->
+      <div class="left-panel">
+        <p class="label">Compound Name</p>
+        <input type="text" id="compoundNameInput" class="code-line" autocomplete="off" />
+        <!-- Selected Compounds List -->
+<div id="selectedCompounds" style="margin-top: 10px;">
+  <!-- Checkbox container for selected compounds -->
+<div id="selectedCompounds" style="margin: 10px 0; color: white;"></div>
+
+  <!-- Dynamic checkboxes will be inserted here -->
+</div>
+
+        <div id="compoundSuggestions" class="autocomplete-box"></div>
+
+        <p class="label">Category</p>
+        <select class="dropdown" id="categoryInput">
+          <option value="">--Select--</option>
+          <option value="PCR">PCR</option>
+          <option value="TBR">TBR</option>
+          <option value="TBB">TBB</option>
+          <option value="OHT">OHT</option>
+          <option value="2W">2W</option>
+        </select>
+
+        <p class="label">Density</p>
+        <input type="text" class="code-line" id="densityInput" placeholder="Enter Density" />
+
+        <p class="label">Model</p>
+        <select class="dropdown" id="modelInput">
+          <option value="">--Select--</option>
+          <option value="Hyperelastic">Hyperelastic</option>
+          <option value="Viscoelastic">Viscoelastic</option>
+        </select>
+
+        <p class="label">Reduced Polynomial (N)</p>
+        <select class="dropdown" id="polynomialInput">
+          <option value="">--Select-- </option>
+          <option value="1">C10, D1</option>
+          <option value="2">C10, C20, D1, D2</option>
+          <option value="3">C10, C20, C30, D1, D2, D3</option>
+        </select>
+
+       <button class="submit-btn" onclick="submitCompound()">SUBMIT</button>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="right-panel">
+        <div class="report">
+          <div class="report-details">
+            <p><strong>Compound Name:</strong> <span id="rCompoundName"></span></p>
+            <p><strong>Category:</strong> <span id="rCategory"></span></p>
+            <p><strong>Density:</strong> <span id="rDensity"></span></p>
+            <p><strong>Model:</strong> <span id="rModel"></span></p>
+            <p><strong>Reduced polynomial:<strong> <span id="rReduced polynominal"></span></strong></p>
+          </div>
+      <div class="graph-container">
+  <h3 class="graph-title">Stress-Strain Curve</h3>
+  <div class="graph-wrapper">
+    <canvas id="stressStrainChart"></canvas>
+  </div>
+</div>
+
+  </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Access & Security -->
+  <div class="access-container" id="accessContainer">
+  <form action="{{ url_for('add_admin') }}" method="POST">
+    <p class="label">User Email ID</p>
+    <input
+      type="email"
+      name="email"
+      class="code-line"
+      placeholder="name@apollotyres.com"
+      required
+      pattern="^[a-zA-Z0-9._%+-]+@apollotyres\.com$"
+      title="Only emails ending with @apollotyres.com are allowed"
+    />
+    
+    <p class="label">Password</p>
+    <input
+      type="password"
+      name="password"
+      class="code-line"
+      placeholder="Enter Password"
+      required
+    />
+
+    <button type="submit" class="submit-btn">SUBMIT</button>
+  </form>
+</div>
+
+
+  <div class="access-container" id="securityContainer">
+    <form action="{{ url_for('admin_security_update') }}" method="POST">
+      <p class="label">New Registration Passcode</p>
+      <input type="text" name="new_passcode" class="code-line" placeholder="Enter new passcode" required />
+      <hr style="margin: 20px 0; border-color: #777;" />
+      <p class="label">Current Password</p>
+      <input type="password" name="current_password" class="code-line" placeholder="Enter current password" required />
+      <p class="label">New Password</p>
+      <input type="password" name="new_password" class="code-line" placeholder="Enter new password" required />
+      <p class="label">Confirm New Password</p>
+      <input type="password" name="confirm_password" class="code-line" placeholder="Re-enter new password" required />
+      <button type="submit" class="submit-btn">UPDATE SECURITY</button>
+    </form>
+  </div>
+<div class="access-container" id="deleteContainer">
+  <form id="deleteForm" action="{{ url_for('delete_compound') }}" method="POST">
+    <p class="label">Delete Type</p>
+    <select id="deleteType" class="dropdown" onchange="toggleDeleteType()" required>
+      <option value="">--Select--</option>
+      <option value="compound">Compound</option>
+      <option value="file">File</option>
+    </select>
+
+    <!-- Hidden input -->
+    <input type="hidden" name="delete_type" id="delete_type_hidden" />
+
+    <!-- ✅ Compound fields -->
+    <div id="compoundFields" style="display: none;">
+      <p class="label">Compound Name</p>
+      <input
+        type="text"
+        name="compound_name"
+        class="code-line"
+        placeholder="Enter compound name"
+        id="deleteCompoundInput"
+        onkeyup="fetchDeleteSuggestions(this.value)"
+        autocomplete="off"
+      />
+      <div id="deleteSuggestionsBox" class="suggestions-box"></div>
+
+      <p class="label">Category</p>
+      <select class="dropdown" name="category">
+        <option value="">--Select--</option>
+        <option value="PCR">PCR</option>
+        <option value="TBR">TBR</option>
+        <option value="TBB">TBB</option>
+        <option value="OHT">OHT</option>
+        <option value="2W">2W</option>
+      </select>
+    </div>
+
+    <!-- File fields -->
+    <div id="fileFields" style="display: none;">
+      <p class="label">File Name (.inc)</p>
+      <input
+        type="text"
+        name="filename"
+        class="code-line"
+        placeholder="e.g. my_file.inc"
+      />
+    </div>
+
+    <button type="submit" class="submit-btn" style="background-color: #171717;">DELETE</button>
+  </form>
+</div>
+
+
+<div class="access-container" id="updateContainer">
+  <form action="{{ url_for('update_compound') }}" method="POST">
+    <p class="label">Compound Name</p>
+    <input type="text" name="compound_name" class="code-line" placeholder="Enter compound name" required />
+
+    <p class="label">Category</p>
+    <select class="dropdown" name="category" required>
+      <option value="">--Select--</option>
+      <option value="PCR">PCR</option>
+      <option value="TBR">TBR</option>
+      <option value="TBB">TBB</option>
+      <option value="OHT">OHT</option>
+      <option value="2W">2W</option>
+    </select>
+
+    <p class="label">Density</p>
+    <input type="text" name="density" class="code-line" placeholder="Enter Density" required />
+
+    <p class="label">Model</p>
+    <select class="dropdown" name="model" required>
+      <option value="">--Select--</option>
+      <option value="Hyperelastic">Hyperelastic</option>
+      <option value="Viscoelastic">Viscoelastic</option>
+    </select>
+
+    <p class="label">Reduced Polynomial Degree (N)</p>
+    <select class="dropdown" name="n_value" required>
+      <option value="">--Select N--</option>
+      <option value="1">N = 1 (C10, D1)</option>
+      <option value="2">N = 2 (C10, C20, D1, D2)</option>
+      <option value="3">N = 3 (C10, C20, C30, D1, D2, D3)</option>
+    </select>
+
+    <p class="label">Reduced Polynomial (comma separated)</p>
+    <input type="text" name="reduced_polynomial" class="code-line" placeholder="C10, C20, ..., D1" required />
+
+    <button type="submit" class="submit-btn" style="background-color: #171717;">UPDATE COMPOUND</button>
+  </form>
+</div>
+<div class="access-container" id="controlsContainer">
+  <form action="{{ url_for('remove_user_or_admins') }}" method="POST">
+    <p class="label">Role</p>
+    <select name="role" class="dropdown" required>
+      <option value="">--Select--</option>
+      <option value="user">User</option>
+      <option value="admins">Admins</option>
+    </select>
+
+    <p class="label">Email ID</p>
+    <input type="email" name="email" class="code-line" placeholder="Enter email ID" required />
+
+    <button type="submit" class="submit-btn" style="background-color: #100f0f;">REMOVE</button>
+  </form>
+</div>
+<div class="logout-fixed">
+  <button onclick="confirmLogout()">🚪 Logout</button>
+</div>
+<script>
+function toggleDatabaseDropdown() {
+    var dropdown = document.getElementById("databaseDropdown");
+    dropdown.style.display = dropdown.style.display === "none" ? "block" : "none";
+}
+</script>
+
+<style>
+.sidebar-button {
+    background-color: #2c2c2c;
+    color: white;
+    border: none;
+    padding: 10px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.dropdown-content a {
+    display: block;
+    padding: 10px;
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+}
+
+.dropdown-content a:hover {
+    background-color: #666;
+}
+</style>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container">
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+<script>
+function toggleAccess() {
+  document.getElementById('accessContainer').classList.toggle('show');
+}
+function toggleSecurity() {
+  document.getElementById('securityContainer').classList.toggle('show');
+}
+function toggleHamburgerMenu() {
+  document.getElementById('sideMenu').classList.toggle('active');
+}
+function toggleDelete() {
+  document.getElementById('deleteContainer').classList.toggle('show');
+}
+function toggleUpdate() {
+  document.getElementById('updateContainer').classList.toggle('show');
+}
+function toggleControls() {
+  document.getElementById('controlsContainer').classList.toggle('show');
+}
+ function toggleDeleteType() {
+    const type = document.getElementById("deleteType").value;
+    const compoundFields = document.getElementById("compoundFields");
+    const fileFields = document.getElementById("fileFields");
+
+    // Show/hide fields
+    compoundFields.style.display = type === "compound" ? "block" : "none";
+    fileFields.style.display = type === "file" ? "block" : "none";
+
+    // Set hidden input to track delete type
+    document.getElementById("delete_type_hidden").value = type;
+  }
+  // ✅ AJAX autocomplete for delete compound
+function fetchDeleteSuggestions(query) {
+  if (!query) {
+    document.getElementById("deleteSuggestionsBox").innerHTML = "";
+    return;
+  }
+
+  fetch(`/compound_delete_suggestions?q=${query}`)
+    .then(res => res.json())
+    .then(data => {
+      const box = document.getElementById("deleteSuggestionsBox");
+      box.innerHTML = "";
+      data.forEach(name => {
+        const div = document.createElement("div");
+        div.className = "suggestion-item";
+        div.textContent = name;
+        div.onclick = () => {
+          document.getElementById("deleteCompoundInput").value = name;
+          box.innerHTML = "";
+        };
+        box.appendChild(div);
+      });
+    });
+}
+// Autocomplete for compound name
+document.getElementById("compoundNameInput").addEventListener("input", function () {
+  const query = this.value;
+  const suggestionBox = document.getElementById("compoundSuggestions");
+  if (query.length < 1) {
+    suggestionBox.innerHTML = "";
+    return;
+  }
+  fetch(`/compound_suggestions?q=${query}`)
+    .then(res => res.json())
+    .then(data => {
+      suggestionBox.innerHTML = "";
+      data.forEach(item => {
+        const div = document.createElement("div");
+        div.textContent = item;
+        div.onclick = () => {
+          document.getElementById("compoundNameInput").value = item;
+          suggestionBox.innerHTML = "";
+          autoFillDensity();
+        };
+        suggestionBox.appendChild(div);
+      });
+    });
+});
+
+// Auto-fill density when compound and category are selected
+function autoFillDensity() {
+  const name = document.getElementById("compoundNameInput").value;
+  const category = document.getElementById("categoryInput").value;
+  if (name && category) {
+    fetch(`/compound_density?name=${encodeURIComponent(name)}&category=${encodeURIComponent(category)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.density) {
+          document.getElementById("densityInput").value = data.density;
+        }
+      })
+      .catch(err => console.error("Density fetch error:", err));
+  }
+}
+document.getElementById("categoryInput").addEventListener("change", autoFillDensity);
+
+// Store selected compound checkboxes
+function submitCompound() {
+  const name = document.getElementById("compoundNameInput").value.trim();
+  const category = document.getElementById("categoryInput").value.trim();
+  const model = document.getElementById("modelInput").value.trim();
+  const n = document.getElementById("polynomialInput").value.trim();  // N value
+
+  if (!name || !category || !model || !n) {
+    alert("Please fill all fields before submitting.");
+    return;
+  }
+
+  const modelFormatted = model.toUpperCase();
+
+  fetch("/compound_full_data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      compound_name: name,
+      category: category,
+      model: modelFormatted,
+      n: n
+    })
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Compound data not found.");
+      return res.json();
+    })
+    .then(data => {
+      // Fill the right panel
+      document.getElementById("rCompoundName").textContent = data.compound_name || "";
+      document.getElementById("rCategory").textContent = data.category || "";
+      document.getElementById("rDensity").textContent = data.density || "";
+      document.getElementById("rModel").textContent = data.model || "";
+      document.getElementById("rReduced polynominal").textContent = data.reduced_polynomial || "";
+
+      // Create a unique checkbox id
+      const compoundId = `checkbox-${data.compound_name}-${data.category}-${data.model}`;
+      if (!document.getElementById(compoundId)) {
+        const container = document.getElementById("selectedCompounds");
+        const label = document.createElement("label");
+        label.style.marginRight = "15px";
+        label.style.display = "inline-block";
+        label.innerHTML = `
+          <input type="checkbox" id="${compoundId}" checked
+            data-name="${data.compound_name}"
+            data-category="${data.category}"
+            data-model="${data.model}">
+          ${data.compound_name}
+        `;
+        container.appendChild(label);
+      }
+       const modelUpper = data.model.toUpperCase();
+      const coeffs = data.reduced_polynomial
+        .split(",")
+        .map(s => s.trim())
+        .filter(s => s !== "")
+        .slice(0, 3);  // Use first 3 coefficients only
+
+       return fetch("/get_graph_data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: model.toUpperCase(),
+      reduced_polynomial: coeffs
+    })
+  })
+  .then(res => res.json())
+  .then(generatedGraph => {
+    // Now fetch user-uploaded XY points
+    return fetch("/get_xy_points", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        compound_name: data.compound_name,
+        category: data.category,
+        model: data.model
+      })
+    })
+    .then(res => res.json())
+    .then(userPoints => {
+      drawGraph({
+        generated: generatedGraph,
+        user_points: userPoints || []
+      });
+    });
+  });
+})
+.catch(err => {
+  console.error("Submit Error:", err);
+  alert("Failed to fetch compound details or graph data.");
+});
+
+
+let stressChart = null;
+
+function drawGraph(graphData) {
+  const canvas = document.getElementById('stressStrainChart');
+  const ctx = canvas.getContext('2d');
+
+  // ✅ Safely destroy any chart instance tied to this canvas
+  const existingChart = Chart.getChart(canvas);
+  if (existingChart) existingChart.destroy();
+
+  const modelData = graphData.generated || [];
+  const userData = graphData.user_points || [];
+
+  const modelXY = modelData.map(d => ({ x: d.strain, y: d.stress }));
+  const userXY = userData.map(d => ({ x: d.x, y: d.y }));
+
+  stressChart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: 'Stress vs Strain',
+          data: modelXY,
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.3)',
+          pointRadius: 3,
+          borderWidth: 2,
+          tension: 0.3,
+          showLine: true
+        },
+        ...(userXY.length > 0 ? [{
+          label: 'User X-Y Points',
+          data: userXY,
+          borderColor: 'red',
+          backgroundColor: 'rgba(255, 0, 0, 0.3)',
+          borderWidth: 2,
+          pointRadius: 4,
+          tension: 0.2,
+          showLine: true
+        }] : [])
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: 'white' }
+        },
+        zoom: {
+          pan: {
+            enabled: true,
+            mode: 'xy',
+            speed: 20,
+            threshold: 10
+          },
+          zoom: {
+            wheel: { enabled: true, speed: 0.2 },
+            pinch: { enabled: true },
+            mode: 'xy'
+          }
+        }
+      },
+      onClick: function (event) {
+        if (event.native?.detail === 2) {
+          stressChart.resetZoom();
+        }
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          title: {
+            display: true,
+            text: 'Strain (λ - 1)',
+            color: '#fff'
+          },
+          ticks: { color: '#ccc' },
+          grid: { color: '#444' }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Stress (σ)',
+            color: '#fff'
+          },
+          ticks: { color: '#ccc' },
+          grid: { color: '#444' }
+        }
+      }
+    }
+  });
+}
+}
+function exportCompound() {
+  const checkboxes = document.querySelectorAll("#selectedCompounds input[type='checkbox']:checked");
+  if (checkboxes.length === 0) {
+    alert("Please select at least one compound to export.");
+    return;
+  }
+
+  const payload = Array.from(checkboxes).map(cb => ({
+    compound_name: cb.dataset.name,
+    category: cb.dataset.category,
+    model: cb.dataset.model
+  }));
+
+  fetch("/export_multiple_compounds", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ compounds: payload })
+  })
+    .then(response => {
+      if (!response.ok) throw new Error("Export failed");
+      return response.blob();
+    })
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "compounds_bundle.inc";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    })
+    .catch(err => {
+      console.error("Export error:", err);
+      alert("Export failed.");
+    });
+  }
+function confirmLogout() {
+    if (confirm("Are you sure you want to log out?\nYou will lose all access.")) {
+      window.location.href = "/logout";
+    }
+  }
+
+</script>
+</script>
+</body>
+</html>

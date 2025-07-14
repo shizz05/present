@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ table_name | capitalize }} Table</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            background-color: #000528;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h2 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            min-width: 600px;
+            margin: auto;
+        }
+
+        th, td {
+            border: 1px solid #b7f3ff;
+            padding: 10px;
+            text-align: left;
+            font-size: 14px;
+            word-break: break-word;
+        }
+
+        th {
+            background-color: #5e718a;
+        }
+
+        td {
+            background-color: #402f52;
+        }
+
+        .no-data {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        /* Clear Buttons for graph_points table only */
+        {% if table_name == 'graph_points' %}
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 25px;
+            gap: 15px;
+        }
+
+        .controls input {
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            width: 200px;
+        }
+
+        .controls button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            background-color: red;
+            color: white;
+            cursor: pointer;
+        }
+
+        .controls button:hover {
+            background-color: darkred;
+        }
+        {% endif %}
+
+        /* Mobile Responsiveness */
+        @media screen and (max-width: 600px) {
+            h2 {
+                font-size: 20px;
+            }
+
+            th, td {
+                font-size: 12px;
+                padding: 8px;
+            }
+
+            {% if table_name == 'graph_points' %}
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .controls input {
+                width: 90%;
+            }
+
+            .controls button {
+                width: 90%;
+            }
+            {% endif %}
+        }
+        .controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 30px;
+  gap: 15px;
+  padding: 10px 0;
+}
+
+.control-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.control-group input {
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  width: 220px;
+  font-size: 14px;
+}
+
+.clear-btn, .clear-all-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: red;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.clear-btn:hover, .clear-all-btn:hover {
+  background-color: darkred;
+}
+
+/* Mobile optimization */
+@media screen and (max-width: 600px) {
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .control-group {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .control-group input,
+  .clear-btn,
+  .clear-all-btn {
+    width: 100%;
+  }
+}
+
+</style>
+</head>
+<body>
+    <h2>{{ table_name | replace("_", " ") | title }} Table</h2>
+
+    {% if rows %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    {% for col in columns %}
+                    <th>{{ col }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    {% for val in row %}
+                    <td>{{ val }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="no-data">No data available in table: <strong>{{ table_name }}</strong></p>
+    {% endif %}
+
+    {% if table_name == 'graph_points' %}
+<div class="controls">
+  <div class="control-group">
+    <input type="text" id="compoundToDelete" placeholder="Enter compound name">
+    <button class="clear-btn" onclick="deleteCompound()">Clear Selected</button>
+  </div>
+  <div class="control-group">
+    <button class="clear-all-btn" onclick="clearAllGraphPoints()">Clear All</button>
+  </div>
+</div>
+{% endif %}
+
+    {% if table_name == 'graph_points' %}
+    <script>
+        function clearAllGraphPoints() {
+            if (confirm("Are you sure you want to delete ALL graph points?")) {
+                fetch('/clear_all_graph_points', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        alert(data.message);
+                        location.reload();
+                    });
+            }
+        }
+
+        function deleteCompound() {
+            const compoundName = document.getElementById("compoundToDelete").value.trim();
+            if (!compoundName) {
+                return alert("Please enter a compound name.");
+            }
+
+            fetch('/delete_graph_points_by_compound', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ compound_name: compoundName })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                location.reload();
+            });
+        }
+    </script>
+    {% endif %}
+</body>
+</html>

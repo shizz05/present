@@ -1,0 +1,189 @@
+/* Reset & Base Styling */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #000528;
+  color: #fff;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Navigation */
+nav.buttons {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.hamburger {
+  font-size: 2.2rem;
+  color: white;
+  cursor: pointer;
+  display: none;
+  user-select: none;
+}
+.menu-items {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.menu-items button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  background: transparent;
+  border: 1px solid #aaa;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 100px;
+  transition: 0.3s;
+}
+.menu-items button:hover {
+  background-color: #444;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255,255,255,0.2);
+}
+.menu-items.show {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* Scrolling Background Text */
+.scrolling-vertical {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 45%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.08;
+}
+.scrolling-inner {
+  display: flex;
+  flex-direction: column;
+  animation: scrollVertical 6s linear infinite;
+}
+.scrolling-inner p {
+  font-size: clamp(1rem, 2vw, 2rem);
+  white-space: nowrap;
+  margin: 1rem 0;
+  color: #ffffff;
+  opacity: 0.8;
+}
+@keyframes scrollVertical {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(-100%); }
+}
+
+/* Main Content */
+.container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 80px 5vw;
+  height: 100vh;
+  z-index: 1;
+  flex-wrap: wrap;
+}
+.text {
+  flex: 1;
+  animation: fadeInUp 1s ease forwards;
+  opacity: 0;
+  min-width: 250px;
+}
+.text h1 {
+  font-size: clamp(2rem, 6vw, 5rem);
+  line-height: 1.2;
+  animation: glow 3s ease-in-out infinite alternate;
+}
+.tagline {
+  font-size: clamp(1rem, 2vw, 1.6rem);
+  margin-top: 1.5rem;
+  color: #ffffff;
+  animation: fadeIn 2s ease-in 0.5s forwards;
+  opacity: 0;
+}
+
+/* Tyre Section */
+.tyre-group {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2vw;
+  flex-wrap: wrap;
+}
+.tyre {
+  max-width: 30vw;
+  flex: 1 1 120px;
+  display: flex;
+  justify-content: center;
+  animation: rotateTyre 4s infinite ease-in-out;
+}
+.tyre img {
+  width: 100%;
+  height: auto;
+  max-height: 60vh;
+  object-fit: contain;
+  filter: drop-shadow(0 0 15px #222);
+  border-radius: 12px;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  0% { transform: translateY(30px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+@keyframes glow {
+  from { text-shadow: 0 0 10px #fff; }
+  to { text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff; }
+}
+@keyframes rotateTyre {
+  0% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Responsive Adjustments */
+@media screen and (max-width: 768px) {
+  .hamburger {
+    display: block;
+  }
+  .menu-items {
+    display: none;
+  }
+  .container {
+    flex-direction: column;
+    text-align: center;
+    padding: 5vh 3vw;
+  }
+  .tyre-group {
+    margin-top: 2rem;
+    gap: 1.5rem;
+  }
+  .scrolling-vertical {
+    width: 100%;
+    left: 0;
+    top: 60%;
+    height: 40%;
+  }
+}

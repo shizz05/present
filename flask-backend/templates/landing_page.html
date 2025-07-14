@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apollo Tyre Simulation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}" />
+  <script defer>
+    function toggleMenu() {
+      const menu = document.querySelector('.menu-items');
+      menu.classList.toggle('show');
+    }
+  </script>
+</head>
+<body>
+  <nav class="buttons">
+    <div class="hamburger" onclick="toggleMenu()">☰</div>
+    <div class="menu-items">
+
+      <!-- Admin Button -->
+      <form action="{{ url_for('admin_login') }}" method="get">
+        <button type="submit">Admin</button>
+      </form>
+
+      <!-- User Button -->
+      <form action="{{ url_for('user_login') }}" method="get">
+        <button type="submit">User</button>
+      </form>
+
+    </div>
+  </nav>
+</body>
+  <div class="scrolling-vertical">
+    <div class="scrolling-inner">
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>                          
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <p>Revolutionizing Tyres Through Simulation.Apollo Tyres Global r&d</p>
+      <!-- Repeat if needed -->
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="text">
+      <h1>Apollo<br>tyre<br>simulation</h1>
+      <div class="tagline">"Where Grip Meets Innovation."</div>
+    </div>
+
+    <div class="tyre-group">
+      <div class="tyre">
+        <img src="{{ url_for('static', filename='/images/tyre.png') }}" alt="Tyre 1" />
+      </div>
+      <div class="tyre">
+        <img src="{{ url_for('static', filename='/images/img4.png') }}" alt="Tyre 2" />
+      </div>
+      <div class="tyre">
+        <img src="{{ url_for('static', filename='/images/img3.png') }}" alt="Tyre 3" />
+      </div>
+    </div>
+  </div>
+</body>
+</html>

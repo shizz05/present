@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>User Panel</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
+  <style>
+    .graph-container {
+      margin-top: 20px;
+      background-color: #0b0b2c;
+      border: 1px solid #ccc;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    .graph-title {
+      text-align: center;
+      color: white;
+      margin-bottom: 10px;
+    }
+    .graph-wrapper {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+
+    @media (max-width: 768px) {
+      .panel-container {
+        flex-direction: column;
+        padding: 10px;
+      }
+
+      .left-panel, .right-panel {
+        width: 100%;
+      }
+
+      .graph-wrapper {
+        height: 250px;
+      }
+
+      .graph-title {
+        font-size: 0.95rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-overlay"></div>
+
+  <div class="header">
+    <h1>USER</h1>
+  </div>
+
+  <div class="panel-container">
+    <div class="menu">
+      <button class="export-btn" onclick="exportCompound()">EXPORT</button>
+    </div>
+
+    <div class="main-content">
+      <!-- Left Panel -->
+      <div class="left-panel">
+        <p class="label">Compound Name</p>
+        <input type="text" class="code-line" id="compoundNameInput" autocomplete="off" />
+        <div id="compoundSuggestions" class="suggestion-box"></div>
+
+        <p class="label">Category</p>
+        <select class="dropdown" id="categoryInput">
+          <option value="">--Select--</option>
+          <option value="PCR">PCR</option>
+          <option value="TBR">TBR</option>
+          <option value="TBB">TBB</option>
+          <option value="OHT">OHT</option>
+          <option value="2W">2W</option>
+        </select>
+
+        <p class="label">Density</p>
+        <input type="text" class="code-line" id="densityInput" placeholder="Auto-filled" readonly />
+
+        <p class="label">Model</p>
+        <select class="dropdown" id="modelInput">
+          <option value="">--Select--</option>
+          <option value="Hyperelastic">Hyperelastic</option>
+          <option value="Viscoelastic">Viscoelastic</option>
+        </select>
+
+        <p class="label">Reduced Polynomial (N)</p>
+        <select class="dropdown" id="polynomialDropdown">
+          <option value="">--Select--</option>
+          <option value="1">C10, D1</option>
+          <option value="2">C10, C20, D1, D2</option>
+          <option value="3">C10, C20, C30, D1, D2, D3</option>
+        </select>
+
+        <button class="submit-btn" onclick="submitCompound()">SUBMIT</button>
+        <div id="selectedCompounds" style="margin-top: 15px;"></div>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="right-panel">
+        <div class="report">
+          <div class="report-details">
+            <p><strong>Compound Name:</strong> <span id="rCompoundName"></span></p>
+            <p><strong>Category:</strong> <span id="rCategory"></span></p>
+            <p><strong>Density:</strong> <span id="rDensity"></span></p>
+            <p><strong>Model:</strong> <span id="rModel"></span></p>
+            <p><strong>Reduced Polynomial:</strong> <span id="rReducedPolynominal"></span></p>
+          </div>
+<div class="logout-fixed">
+  <button onclick="confirmLogout()">🚪 Logout</button>
+</div>
+          <div class="graph-container">
+  <h3 class="graph-title">Stress-Strain Curve</h3>
+  <div class="graph-wrapper">
+    <canvas id="userStressStrainChart"></canvas>
+  </div>
+</div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+let userStressChart = null;
+
+function drawUserGraph(graphData) {
+  const ctx = document.getElementById('userStressStrainChart').getContext('2d');
+
+  const modelData = graphData.generated || [];
+  const userData = graphData.user_points || [];
+
+  const modelXY = modelData.map(d => ({ x: d.strain, y: d.stress }));
+  const userXY = userData.map(d => ({ x: d.x, y: d.y }));
+
+  if (userStressChart) userStressChart.destroy();
+
+  userStressChart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: 'Stress vs Strain',
+          data: modelXY,
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.3)',
+          pointRadius: 3,
+          borderWidth: 2,
+          tension: 0.3,
+          showLine: true
+        },
+        ...(userXY.length > 0 ? [{
+          label: 'User X-Y Points',
+          data: userXY,
+          borderColor: 'red',
+          backgroundColor: 'rgba(255, 0, 0, 0.3)',
+          borderWidth: 2,
+          pointRadius: 4,
+          tension: 0.2,
+          showLine: true
+        }] : [])
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: 'white' }
+        },
+        zoom: {
+          pan: {
+            enabled: true,
+            mode: 'xy',
+            speed: 20,
+            threshold: 10
+          },
+          zoom: {
+            wheel: { enabled: true, speed: 0.2 },
+            pinch: { enabled: true },
+            mode: 'xy'
+          }
+        }
+      },
+      onClick: function (event) {
+        if (event.native?.detail === 2) {
+          userStressChart.resetZoom();
+        }
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          title: {
+            display: true,
+            text: 'Strain (λ - 1)',
+            color: '#fff'
+          },
+          ticks: { color: '#ccc' },
+          grid: { color: '#444' }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Stress (σ)',
+            color: '#fff'
+          },
+          ticks: { color: '#ccc' },
+          grid: { color: '#444' }
+        }
+      }
+    }
+  });
+}
+
+function autoFillDensity() {
+  const name = document.getElementById("compoundNameInput").value.trim();
+  const category = document.getElementById("categoryInput").value.trim();
+  if (name && category) {
+    fetch(`/compound_density?name=${encodeURIComponent(name)}&category=${encodeURIComponent(category)}`)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("densityInput").value = data.density || "";
+      })
+      .catch(err => console.error("Density fetch error:", err));
+  }
+}
+
+document.getElementById("compoundNameInput").addEventListener("input", function () {
+  const query = this.value;
+  const suggestionBox = document.getElementById("compoundSuggestions");
+  if (query.length < 1) {
+    suggestionBox.innerHTML = "";
+    return;
+  }
+  fetch(`/compound_suggestions?q=${encodeURIComponent(query)}`)
+    .then(res => res.json())
+    .then(data => {
+      suggestionBox.innerHTML = "";
+      data.forEach(name => {
+        const div = document.createElement("div");
+        div.textContent = name;
+        div.onclick = () => {
+          document.getElementById("compoundNameInput").value = name;
+          suggestionBox.innerHTML = "";
+          autoFillDensity();
+        };
+        suggestionBox.appendChild(div);
+      });
+    });
+});
+
+document.getElementById("compoundNameInput").addEventListener("input", autoFillDensity);
+document.getElementById("categoryInput").addEventListener("change", autoFillDensity);
+
+function submitCompound() {
+  const name = document.getElementById("compoundNameInput").value.trim();
+  const category = document.getElementById("categoryInput").value.trim();
+  const model = document.getElementById("modelInput").value.trim().toUpperCase();
+  const nValue = document.getElementById("polynomialDropdown").value;
+
+  if (!name || !category || !model || !nValue) {
+    alert("Please fill all fields.");
+    return;
+  }
+
+  fetch("/user_compound_full_data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ compound_name: name, category, model, n: nValue })
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Compound data not found.");
+      return res.json();
+    })
+    .then(data => {
+      document.getElementById("rCompoundName").textContent = data.compound_name || "";
+      document.getElementById("rCategory").textContent = data.category || "";
+      document.getElementById("rDensity").textContent = data.density || "";
+      document.getElementById("rModel").textContent = data.model || "";
+      document.getElementById("rReducedPolynominal").textContent = data.reduced_polynomial || "";
+      document.getElementById("densityInput").value = data.density || "";
+
+      const compoundId = `cb-${data.compound_name}-${data.category}-${data.model}`;
+      if (!document.getElementById(compoundId)) {
+        const label = document.createElement("label");
+        label.style.marginRight = "12px";
+        label.innerHTML = `
+          <input type="checkbox" id="${compoundId}" checked
+            data-name="${data.compound_name}"
+            data-category="${data.category}"
+            data-model="${data.model}">
+          ${data.compound_name}`;
+        document.getElementById("selectedCompounds").appendChild(label);
+      }
+
+      const coeffs = (data.reduced_polynomial || "")
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean)
+        .slice(0, 3); // Only first 3 coefficients needed for graph
+
+      // Fetch both model curve and uploaded user xy-points
+      return Promise.all([
+        fetch("/get_graph_data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: model,
+            reduced_polynomial: coeffs
+          })
+        }).then(res => res.json()),
+        fetch("/get_xy_points", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            compound_name: data.compound_name,
+            category: data.category,
+            model: data.model
+          })
+        }).then(res => res.json())
+      ]);
+    })
+    .then(([generated, user_points]) => {
+      drawUserGraph({ generated, user_points: user_points || [] });
+    })
+    .catch(err => {
+      console.error("Submit Error:", err);
+      alert("Failed to fetch compound or graph data.");
+    });
+}
+
+function exportCompound() {
+  const checkboxes = document.querySelectorAll("#selectedCompounds input[type='checkbox']:checked");
+  if (checkboxes.length === 0) {
+    alert("Please select at least one compound.");
+    return;
+  }
+
+  const payload = Array.from(checkboxes).map(cb => ({
+    compound_name: cb.dataset.name,
+    category: cb.dataset.category,
+    model: cb.dataset.model
+  }));
+
+  fetch("/user_export_multiple_compounds", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },                                 
+    body: JSON.stringify({ compounds: payload })
+  })
+    .then(response => {
+      if (!response.ok) throw new Error("Export failed");
+      return response.blob();
+    })
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "user_compounds.inc";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    })
+    .catch(err => {
+      console.error("Export error:", err);
+      alert("Export failed.");
+    });
+}
+function confirmLogout() {
+    if (confirm("Are you sure you want to log out?\nYou will lose all access.")) {
+      window.location.href = "/logout";
+    }
+  }
+</script>
+</body>
+</html>

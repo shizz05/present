@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Verify Passcode</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/loginus.css') }}">
+</head>
+<body>
+  <div class="wrapper">
+    <form method="POST" action="{{ url_for('user_passcode') }}">
+      <h1>Enter Passcode</h1>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <p class="flash {{ category }}">{{ message }}</p>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <div class="input-box">
+        <input type="password" name="passcode" placeholder="Enter Admin Passcode" required>
+      </div>
+
+      <button type="submit" class="btn">Continue</button>
+    </form>
+  </div>
+</body>
+</html>
