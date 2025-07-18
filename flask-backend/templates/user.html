@@ -63,7 +63,8 @@
       <!-- Left Panel -->
       <div class="left-panel">
         <p class="label">Compound Name</p>
-        <input type="text" class="code-line" id="compoundNameInput" autocomplete="off" />
+         <input type="text" id="compoundNameInput" class="code-line" autocomplete="off" oninput="checkCompoundName()" />
+        <div id="errorMessage" style="color: red; display: none; margin-top: 5px; font-weight: bold;"></div>
         <div id="compoundSuggestions" class="suggestion-box"></div>
 
         <p class="label">Category</p>
@@ -138,31 +139,30 @@ function drawUserGraph(graphData) {
   if (userStressChart) userStressChart.destroy();
 
   userStressChart = new Chart(ctx, {
-    type: 'scatter',
-    data: {
-      datasets: [
-        {
-          label: 'Stress vs Strain',
-          data: modelXY,
-          borderColor: 'rgba(75, 192, 192, 1)',
-          backgroundColor: 'rgba(75, 192, 192, 0.3)',
-          pointRadius: 3,
-          borderWidth: 2,
-          tension: 0.3,
-          showLine: true
-        },
-        ...(userXY.length > 0 ? [{
-          label: 'User X-Y Points',
-          data: userXY,
-          borderColor: 'red',
-          backgroundColor: 'rgba(255, 0, 0, 0.3)',
-          borderWidth: 2,
-          pointRadius: 4,
-          tension: 0.2,
-          showLine: true
-        }] : [])
-      ]
-    },
+  type: 'scatter',
+  data: {
+    datasets: [
+      {
+        label: 'Fitted',
+        data: modelXY,
+        borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: '#EE82EE',
+        pointRadius: 3,         // Show dots
+        borderWidth: 0,         // No line thickness
+        showLine: false         // No line
+      },
+      ...(userXY.length > 0 ? [{
+        label: 'Experimental',
+        data: userXY,
+        borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: 'rgba(75, 192, 192, 1)',
+        pointRadius: 0,         // Hide dots
+        borderWidth: 2,         // Show line
+        tension: 0.3,
+        showLine: true          // Line only
+      }] : [])
+    ]
+  },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -194,7 +194,7 @@ function drawUserGraph(graphData) {
           type: 'linear',
           title: {
             display: true,
-            text: 'Strain (λ - 1)',
+            text: 'Strain (ε)',
             color: '#fff'
           },
           ticks: { color: '#ccc' },
@@ -372,6 +372,66 @@ function confirmLogout() {
       window.location.href = "/logout";
     }
   }
+</script>
+<script>
+function checkCompoundName() {
+  const name = document.getElementById("compoundNameInput").value.trim();
+  const errorBox = document.getElementById("errorMessage");
+
+  if (!name) {
+    errorBox.style.display = "none";
+    errorBox.textContent = "";
+    return;
+  }
+
+  fetch(`/compound_suggestions?q=${encodeURIComponent(name)}`)
+    .then(res => res.json())
+    .then(suggestions => {
+      const lowerSuggestions = suggestions.map(s => s.toLowerCase());
+      if (lowerSuggestions.includes(name.toLowerCase())) {
+        errorBox.style.display = "none";
+        errorBox.textContent = "";
+      } else {
+        errorBox.textContent = "❌ Compound name not found.";
+        errorBox.style.display = "block";
+      }
+    })
+    .catch(err => {
+      console.error("Error checking compound:", err);
+      errorBox.textContent = "⚠️ Could not check compound name.";
+      errorBox.style.display = "block";
+    });
+}
+</script>
+<script>
+document.getElementById("compoundNameInput").addEventListener("input", function () {
+  const query = this.value;
+  const suggestionBox = document.getElementById("compoundSuggestions");
+  if (query.length < 1) {
+    suggestionBox.innerHTML = "";
+    return;
+  }
+
+  fetch(`/compound_suggestions?q=${query}`)
+    .then(res => res.json())
+    .then(data => {
+      suggestionBox.innerHTML = "";
+      data.forEach(item => {
+        const div = document.createElement("div");
+        div.textContent = item;
+        div.onclick = () => {
+          document.getElementById("compoundNameInput").value = item;
+          suggestionBox.innerHTML = "";
+
+          // ✅ Hide error message when user selects a valid compound
+          document.getElementById("errorMessage").style.display = "none";
+
+          autoFillDensity();  // your function to fill density if needed
+        };
+        suggestionBox.appendChild(div);
+      });
+    });
+});
 </script>
 </body>
 </html>

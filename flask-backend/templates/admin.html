@@ -8,7 +8,7 @@
   <!-- ✅ Font Awesome for Icons -->
  <!-- Font Awesome (CDN - works online) -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
-<link href="https://fonts.cdnfonts.com/css/luke-owens" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
@@ -112,76 +112,104 @@
 </div>
 
 
-  <!-- Admin Panel Content -->
-  <div class="panel-container">
-    <div class="main-content">
-      <!-- Left Panel -->
-      <div class="left-panel">
-        <p class="label">Compound Name</p>
-        <input type="text" id="compoundNameInput" class="code-line" autocomplete="off" />
-        <!-- Selected Compounds List -->
-<div id="selectedCompounds" style="margin-top: 10px;">
-  <!-- Checkbox container for selected compounds -->
-<div id="selectedCompounds" style="margin: 10px 0; color: white;"></div>
+<!-- Admin Panel Content -->
+<div class="panel-container" style="display: flex; flex-wrap: wrap; align-items: flex-start;">
+  <div class="main-content" style="display: flex; flex-wrap: wrap; width: 100%;">
+    <!-- Left Panel -->
+    <div class="left-panel" style="flex: 1 1 50%; min-width: 300px; padding-right: 20px;">
+      <p class="label">Category</p>
+      <select class="dropdown" id="categoryInput" onchange=>
+        <option value="">--Select--</option>
+        <option value="PCR">PCR</option>
+        <option value="TBR">TBR</option>
+        <option value="TBB">TBB</option>
+        <option value="OHT">OHT</option>
+        <option value="2W">2W</option>
+      </select>
 
-  <!-- Dynamic checkboxes will be inserted here -->
-</div>
+      <!-- ✅ COMPONENT DROPDOWN (compact & responsive) -->
+      <p class="label">Component</p>
+      <select class="dropdown" id="componentInput" style="max-width: 100%; font-size: 14px;">
+        <option value="">--Select--</option>
+        <option value="Bead Apex">Bead Apex</option>
+        <option value="Cap Ply">Cap Ply</option>
+        <option value="Belt">Belt</option>
+        <option value="Base">Base</option>
+        <option value="Body Ply">Body Ply</option>
+        <option value="Inner Liner">Inner Liner</option>
+        <option value="Rim Strip">Rim Strip</option>
+        <option value="Rim Cushion">Rim Cushion</option>
+        <option value="Tread">Tread</option>
+        <option value="Techical layer">Techical layer</option>
+        <option value="Wing strip">Wing strip</option>
+        <option value="Side wall">Side wall</option>
+        <option value="Squeeze compound">Squeeze compound</option>
+        <option value="Gum">Gum</option>
+        <option value="Hard apex">Hard apex</option>
+        <option value="Bead cushion">Bead cushion</option>
+        <option value="Soft apex">Soft apex</option>
+        <option value="Bead coat">Bead coat</option>
+        <option value="Inner Ply">Inner Ply</option>
+        <option value="Breaker">Breaker</option>
+        <option value="Chafer">Chafer</option>
+        <option value="Flipper">Flipper</option>
+        <option value="Drum Squeegee">Drum Squeegee</option>
+      </select>
 
-        <div id="compoundSuggestions" class="autocomplete-box"></div>
+      <p class="label">Physical Parameter</p>
+      <select class="dropdown" id="physicalParamInput">
+        <option value="">--Select--</option>
+        <option value="Tensile">Tensile</option>
+        <option value="Compression">Compression</option>
+        <option value="Mullins">Mullins</option>
+        <option value="DMA">DMA</option>
+        <option value="TFA">TFA</option>
+      </select>
 
-        <p class="label">Category</p>
-        <select class="dropdown" id="categoryInput">
-          <option value="">--Select--</option>
-          <option value="PCR">PCR</option>
-          <option value="TBR">TBR</option>
-          <option value="TBB">TBB</option>
-          <option value="OHT">OHT</option>
-          <option value="2W">2W</option>
-        </select>
+      <p class="label">Compound Name</p>
+      <input type="text" id="compoundNameInput" class="code-line" autocomplete="off" oninput="checkCompoundName()" />
+      <div id="errorMessage" style="color: red; display: none; margin-top: 5px; font-weight: bold;"></div>
 
-        <p class="label">Density</p>
-        <input type="text" class="code-line" id="densityInput" placeholder="Enter Density" />
+      <!-- Suggestions -->
+      <div id="compoundSuggestions" class="autocomplete-box"></div>
 
-        <p class="label">Model</p>
-        <select class="dropdown" id="modelInput">
-          <option value="">--Select--</option>
-          <option value="Hyperelastic">Hyperelastic</option>
-          <option value="Viscoelastic">Viscoelastic</option>
-        </select>
+      <!-- Selected Compounds List -->
+      <div id="selectedCompounds" style="margin: 10px 0; color: white;"></div>
+      <p class="label">Model</p>
+      <select class="dropdown" id="modelInput">
+        <option value="">--Select--</option>
+        <option value="Hyperelastic">Hyperelastic</option>
+        <option value="Viscoelastic">Viscoelastic</option>
+      </select>
 
-        <p class="label">Reduced Polynomial (N)</p>
-        <select class="dropdown" id="polynomialInput">
-          <option value="">--Select-- </option>
-          <option value="1">C10, D1</option>
-          <option value="2">C10, C20, D1, D2</option>
-          <option value="3">C10, C20, C30, D1, D2, D3</option>
-        </select>
+      <p class="label">Reduced Polynomial (N)</p>
+      <select class="dropdown" id="polynomialInput">
+        <option value="">--Select--</option>
+        <option value="1">C10, D1</option>
+        <option value="2">C10, C20, D1, D2</option>
+        <option value="3">C10, C20, C30, D1, D2, D3</option>
+      </select>
 
-       <button class="submit-btn" onclick="submitCompound()">SUBMIT</button>
-      </div>
+      <button class="submit-btn" onclick="submitCompound()">SUBMIT</button>
+    </div>
 
-      <!-- Right Panel -->
-      <div class="right-panel">
-        <div class="report">
-          <div class="report-details">
-            <p><strong>Compound Name:</strong> <span id="rCompoundName"></span></p>
-            <p><strong>Category:</strong> <span id="rCategory"></span></p>
-            <p><strong>Density:</strong> <span id="rDensity"></span></p>
-            <p><strong>Model:</strong> <span id="rModel"></span></p>
-            <p><strong>Reduced polynomial:<strong> <span id="rReduced polynominal"></span></strong></p>
+    <!-- Right Panel -->
+    <div class="right-panel" style="flex: 1 1 50%; min-width: 300px;">
+      <div class="report">
+        <div class="report-details">
+          <p><strong>Compound Name:</strong> <span id="rCompoundName"></span></p>
+        </div>
+        <div class="graph-container">
+          <h3 class="graph-title">Stress-Strain Curve</h3>
+          <div class="graph-wrapper">
+            <canvas id="stressStrainChart"></canvas>
           </div>
-      <div class="graph-container">
-  <h3 class="graph-title">Stress-Strain Curve</h3>
-  <div class="graph-wrapper">
-    <canvas id="stressStrainChart"></canvas>
-  </div>
-</div>
-
-  </div>
         </div>
       </div>
     </div>
   </div>
+</div>
+
 
   <!-- Access & Security -->
   <div class="access-container" id="accessContainer">
@@ -430,48 +458,44 @@ function fetchDeleteSuggestions(query) {
       });
     });
 }
-// Autocomplete for compound name
 document.getElementById("compoundNameInput").addEventListener("input", function () {
-  const query = this.value;
+  const query = this.value.trim();
   const suggestionBox = document.getElementById("compoundSuggestions");
-  if (query.length < 1) {
-    suggestionBox.innerHTML = "";
+
+  const physicalParam = document.getElementById("physicalParamInput").value;
+  const component = document.getElementById("componentInput").value;
+  const category = document.getElementById("categoryInput").value;
+
+  if (!category || !component || !physicalParam) {
+    suggestionBox.innerHTML = "<div style='color: red; padding: 8px;'>Please select Category, Component, and Physical Parameter</div>";
     return;
   }
-  fetch(`/compound_suggestions?q=${query}`)
+
+  fetch(`/compound_suggestions?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&component=${encodeURIComponent(component)}&parameter=${encodeURIComponent(physicalParam)}`)
     .then(res => res.json())
     .then(data => {
       suggestionBox.innerHTML = "";
+      if (data.length === 0) {
+        suggestionBox.innerHTML = "<div style='color: gray; padding: 8px;'>No matching compounds found</div>";
+        return;
+      }
       data.forEach(item => {
         const div = document.createElement("div");
         div.textContent = item;
         div.onclick = () => {
           document.getElementById("compoundNameInput").value = item;
           suggestionBox.innerHTML = "";
-          autoFillDensity();
+          document.getElementById("errorMessage").style.display = "none";
+          autoFillDensity();  // Optional
         };
         suggestionBox.appendChild(div);
       });
+    })
+    .catch(err => {
+      suggestionBox.innerHTML = "<div style='color: red; padding: 8px;'>Error fetching suggestions</div>";
+      console.error("Suggestion fetch error:", err);
     });
 });
-
-// Auto-fill density when compound and category are selected
-function autoFillDensity() {
-  const name = document.getElementById("compoundNameInput").value;
-  const category = document.getElementById("categoryInput").value;
-  if (name && category) {
-    fetch(`/compound_density?name=${encodeURIComponent(name)}&category=${encodeURIComponent(category)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.density) {
-          document.getElementById("densityInput").value = data.density;
-        }
-      })
-      .catch(err => console.error("Density fetch error:", err));
-  }
-}
-document.getElementById("categoryInput").addEventListener("change", autoFillDensity);
-
 // Store selected compound checkboxes
 function submitCompound() {
   const name = document.getElementById("compoundNameInput").value.trim();
@@ -486,7 +510,13 @@ function submitCompound() {
 
   const modelFormatted = model.toUpperCase();
 
-  fetch("/compound_full_data", {
+console.log({
+  compound_name: name,
+  category: category,
+  model: modelFormatted,
+  n: n
+});
+fetch("/compound_full_data", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -503,10 +533,6 @@ function submitCompound() {
     .then(data => {
       // Fill the right panel
       document.getElementById("rCompoundName").textContent = data.compound_name || "";
-      document.getElementById("rCategory").textContent = data.category || "";
-      document.getElementById("rDensity").textContent = data.density || "";
-      document.getElementById("rModel").textContent = data.model || "";
-      document.getElementById("rReduced polynominal").textContent = data.reduced_polynomial || "";
 
       // Create a unique checkbox id
       const compoundId = `checkbox-${data.compound_name}-${data.category}-${data.model}`;
@@ -582,81 +608,91 @@ function drawGraph(graphData) {
   const modelXY = modelData.map(d => ({ x: d.strain, y: d.stress }));
   const userXY = userData.map(d => ({ x: d.x, y: d.y }));
 
-  stressChart = new Chart(ctx, {
-    type: 'scatter',
-    data: {
-      datasets: [
-        {
-          label: 'Stress vs Strain',
-          data: modelXY,
-          borderColor: 'rgba(75, 192, 192, 1)',
-          backgroundColor: 'rgba(75, 192, 192, 0.3)',
-          pointRadius: 3,
-          borderWidth: 2,
-          tension: 0.3,
-          showLine: true
-        },
-        ...(userXY.length > 0 ? [{
-          label: 'User X-Y Points',
-          data: userXY,
-          borderColor: 'red',
-          backgroundColor: 'rgba(255, 0, 0, 0.3)',
-          borderWidth: 2,
-          pointRadius: 4,
-          tension: 0.2,
-          showLine: true
-        }] : [])
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          labels: { color: 'white' }
+ stressChart = new Chart(ctx, {
+  type: 'scatter',
+  data: {
+    datasets: [
+      {
+        label: 'Fitted',
+        data: modelXY,
+        borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: '#EE82EE',
+        pointRadius: 3,             // Show visible dots
+        pointHoverRadius: 6,        // Enlarge on hover
+        borderWidth: 0,             // No line
+        showLine: false             // Dots only
+      },
+      ...(userXY.length > 0 ? [{
+        label: 'Experimental',
+        data: userXY,
+        borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: 'rgba(75, 192, 192, 1)',
+        pointRadius: 0,             // Hide dots visually
+        pointHoverRadius: 5,        // But show tooltip when hovered
+        borderWidth: 2,
+        tension: 0.3,
+        showLine: true              // Line only
+      }] : [])
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: { color: 'white' }
+      },
+      zoom: {
+        pan: {
+          enabled: true,
+          mode: 'xy',
+          speed: 20,
+          threshold: 10
         },
         zoom: {
-          pan: {
-            enabled: true,
-            mode: 'xy',
-            speed: 20,
-            threshold: 10
-          },
-          zoom: {
-            wheel: { enabled: true, speed: 0.2 },
-            pinch: { enabled: true },
-            mode: 'xy'
-          }
+          wheel: { enabled: true, speed: 0.2 },
+          pinch: { enabled: true },
+          mode: 'xy'
         }
       },
-      onClick: function (event) {
-        if (event.native?.detail === 2) {
-          stressChart.resetZoom();
-        }
-      },
-      scales: {
-        x: {
-          type: 'linear',
-          title: {
-            display: true,
-            text: 'Strain (λ - 1)',
-            color: '#fff'
-          },
-          ticks: { color: '#ccc' },
-          grid: { color: '#444' }
+      tooltip: {
+        enabled: true,
+        mode: 'nearest',
+        intersect: false
+      }
+    },
+    hover: {
+      mode: 'nearest',
+      intersect: false
+    },
+    onClick: function (event) {
+      if (event.native?.detail === 2) {
+        stressChart.resetZoom();
+      }
+    },
+    scales: {
+      x: {
+        type: 'linear',
+        title: {
+          display: true,
+          text: 'Strain (ε)',
+          color: '#fff'
         },
-        y: {
-          title: {
-            display: true,
-            text: 'Stress (σ)',
-            color: '#fff'
-          },
-          ticks: { color: '#ccc' },
-          grid: { color: '#444' }
-        }
+        ticks: { color: '#ccc' },
+        grid: { color: '#444' }
+      },
+      y: {
+        title: {
+          display: true,
+          text: 'Stress (σ)',
+          color: '#fff'
+        },
+        ticks: { color: '#ccc' },
+        grid: { color: '#444' }
       }
     }
-  });
+  }
+});
 }
 }
 function exportCompound() {
@@ -700,8 +736,233 @@ function confirmLogout() {
       window.location.href = "/logout";
     }
   }
-
 </script>
+<script>
+function checkCompoundName() {
+  const name = document.getElementById("compoundNameInput").value.trim();
+  const errorBox = document.getElementById("errorMessage");
+
+  if (!name) {
+    errorBox.style.display = "none";
+    errorBox.textContent = "";
+    return;
+  }
+
+  fetch(`/compound_suggestions?q=${encodeURIComponent(name)}`)
+    .then(res => res.json())
+    .then(suggestions => {
+      const lowerSuggestions = suggestions.map(s => s.toLowerCase());
+      if (lowerSuggestions.includes(name.toLowerCase())) {
+        errorBox.style.display = "none";
+        errorBox.textContent = "";
+      } else {
+        errorBox.textContent = "❌ Compound name not found.";
+        errorBox.style.display = "block";
+      }
+    })
+    .catch(err => {
+      console.error("Error checking compound:", err);
+      errorBox.textContent = "⚠️ Could not check compound name.";
+      errorBox.style.display = "block";
+    });
+}
+</script>
+<script>
+document.getElementById("compoundNameInput").addEventListener("input", function () {
+  const query = this.value;
+  const suggestionBox = document.getElementById("compoundSuggestions");
+  if (query.length < 1) {
+    suggestionBox.innerHTML = "";
+    return;
+  }
+    const physicalParam = document.getElementById("physicalParamInput").value;
+  if (!physicalParam) {
+    suggestionBox.innerHTML = "<div style='color: red; padding: 8px;'>Select Physical Parameter First</div>";
+    return;
+  }
+
+  const category = document.getElementById("categoryInput").value;
+const component = document.getElementById("componentInput").value;
+
+if (!category || !component || !physicalParam) {
+  suggestionBox.innerHTML = "<div style='color: red; padding: 8px;'>Please select Category, Component, and Physical Parameter first</div>";
+  return;
+}
+
+fetch(`/compound_suggestions?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&component=${encodeURIComponent(component)}&parameter=${encodeURIComponent(physicalParam)}`)
+
+    .then(res => res.json())
+    .then(data => {
+      suggestionBox.innerHTML = "";
+      data.forEach(item => {
+        const div = document.createElement("div");
+        div.textContent = item;
+        div.onclick = () => {
+          document.getElementById("compoundNameInput").value = item;
+          suggestionBox.innerHTML = "";
+
+          // ✅ Hide error message when user selects a valid compound
+          document.getElementById("errorMessage").style.display = "none";
+        };
+        suggestionBox.appendChild(div);
+      });
+    });
+});
+</script>
+<script>
+function showConfirmationPopup(action, onConfirm) {
+  const confirmationBox = document.createElement("div");
+  confirmationBox.style.position = "fixed";
+  confirmationBox.style.top = "0";
+  confirmationBox.style.left = "0";
+  confirmationBox.style.width = "100%";
+  confirmationBox.style.height = "100%";
+  confirmationBox.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+  confirmationBox.style.display = "flex";
+  confirmationBox.style.alignItems = "center";
+  confirmationBox.style.justifyContent = "center";
+  confirmationBox.style.zIndex = "9999";
+
+  const box = document.createElement("div");
+  box.style.background = "#222";
+  box.style.padding = "20px 30px";
+  box.style.borderRadius = "10px";
+  box.style.boxShadow = "0 0 10px #000";
+  box.style.color = "white";
+  box.style.textAlign = "center";
+
+  const msg = document.createElement("p");
+  msg.textContent = `Are you sure you want to ${action}?`;
+  msg.style.marginBottom = "20px";
+
+  const btnContainer = document.createElement("div");
+
+  const confirmBtn = document.createElement("button");
+  confirmBtn.textContent = "OK";
+  confirmBtn.style.marginRight = "10px";
+  confirmBtn.style.padding = "8px 16px";
+  confirmBtn.style.borderRadius = "5px";
+  confirmBtn.style.border = "none";
+  confirmBtn.style.background = "#28a745";
+  confirmBtn.style.color = "white";
+  confirmBtn.onclick = () => {
+    document.body.removeChild(confirmationBox);
+    onConfirm();
+  };
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.style.padding = "8px 16px";
+  cancelBtn.style.borderRadius = "5px";
+  cancelBtn.style.border = "none";
+  cancelBtn.style.background = "#dc3545";
+  cancelBtn.style.color = "white";
+  cancelBtn.onclick = () => {
+    document.body.removeChild(confirmationBox);
+  };
+
+  btnContainer.appendChild(confirmBtn);
+  btnContainer.appendChild(cancelBtn);
+  box.appendChild(msg);
+  box.appendChild(btnContainer);
+  confirmationBox.appendChild(box);
+  document.body.appendChild(confirmationBox);
+}
+
+function confirmUpdate(actionCallback) {
+  showConfirmationPopup("update", actionCallback);
+}
+
+function confirmDelete(actionCallback) {
+  showConfirmationPopup("delete", actionCallback);
+}
+
+function confirmUpload(actionCallback) {
+  showConfirmationPopup("upload", actionCallback);
+}
+
+// Hook to actual form buttons on DOMContentLoaded
+// Matches buttons styled and declared in admin panel
+
+window.addEventListener("DOMContentLoaded", () => {
+  const updateForm = document.querySelector("#updateContainer form");
+  const updateBtn = updateForm?.querySelector("button[type='submit']");
+  if (updateBtn) {
+    updateBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      confirmUpdate(() => updateForm.submit());
+    });
+  }
+
+  const deleteForm = document.querySelector("#deleteForm");
+  const deleteBtn = deleteForm?.querySelector("button[type='submit']");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      confirmDelete(() => deleteForm.submit());
+    });
+  }
+
+  const uploadForms = document.querySelectorAll("form[action*='upload']");
+  uploadForms.forEach(form => {
+    const btn = form.querySelector("button[type='submit']");
+    if (btn) {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        confirmUpload(() => form.submit());
+      });
+    }
+  });
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const input = document.getElementById("compoundNameInput");
+  const suggestionBox = document.getElementById("compoundSuggestions");
+
+  input.addEventListener("input", function () {
+    const query = this.value.trim();
+    const category = document.getElementById("categoryInput").value;
+    const component = document.getElementById("componentInput").value;
+    const parameter = document.getElementById("physicalParamInput").value;
+
+    if (!category || !component || !parameter) {
+      suggestionBox.innerHTML = "<div style='color: red; padding: 8px;'>Please select Category, Component, and Physical Parameter first</div>";
+      return;
+    }
+
+    fetch(`/compound_suggestions?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&component=${encodeURIComponent(component)}&parameter=${encodeURIComponent(parameter)}`)
+      .then(res => res.json())
+      .then(data => {
+        console.log("📦 Suggestions received:", data);
+        suggestionBox.innerHTML = "";
+
+        if (data.length === 0) {
+          suggestionBox.innerHTML = "<div style='color: gray; padding: 8px;'>No matching compounds found</div>";
+          return;
+        }
+
+        data.forEach(item => {
+          const div = document.createElement("div");
+          div.textContent = item;
+          div.onclick = () => {
+            input.value = item;
+            suggestionBox.innerHTML = "";
+            document.getElementById("errorMessage").style.display = "none";
+          };
+          suggestionBox.appendChild(div);
+        });
+      })
+      .catch(err => {
+        console.error("❌ Error fetching suggestions:", err);
+      });
+  });
+
+  // Trigger suggestions when input is focused
+  input.addEventListener("focus", function () {
+    input.dispatchEvent(new Event("input"));
+  });
+});
 </script>
 </body>
 </html>

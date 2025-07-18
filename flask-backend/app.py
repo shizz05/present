@@ -18,16 +18,19 @@ app.secret_key = "Apollo$ecureTyrePlatform@2025"
 
 
 # ------------------------ PostgreSQL Connection ------------------------
+from urllib import parse as urlparse
 import os
 import psycopg2
 
+
 def get_db_connection():
-    db_url = os.environ.get("DATABASE_URL", "postgresql://flask_db_xaju_user:XeEDCYtCMifQ0sjvZjiXZO8W3iiBHstI@dpg-d1ljqere5dus73fpktu0-a/flask_db_xaju")
-
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-
-    return psycopg2.connect(db_url)
+    return psycopg2.connect(
+        dbname="admin",
+        user="postgres",
+        password="apolloatr",
+        host="localhost",
+        port="5432",
+    )
 
 
 # ------------------------ Send Reset Email ------------------------
@@ -137,8 +140,6 @@ def admin_login():
     return render_template("loginad.html")
 
 
-
-
 # ------------------------ Admin Panel ------------------------
 @app.route("/admin_panel")
 def admin_panel():
@@ -164,7 +165,7 @@ def logout():
 
         cur.execute(
             "INSERT INTO login_logs (email, status) VALUES (%s, 'logout - removed')",
-            (email,)
+            (email,),
         )
         conn.commit()
     except Exception as e:
@@ -176,6 +177,7 @@ def logout():
         session.clear()
 
     return redirect(url_for("landing"))
+
 
 # ------------------------ Generate Hashed Password ------------------------
 @app.route("/generate_hash/<plaintext>")
@@ -257,6 +259,7 @@ def reset_password(token):
 # ------------------------ Admin: Add Admin ------------------------
 import re
 
+
 @app.route("/add_admin", methods=["POST"])
 def add_admin():
     if "admin_email" not in session:
@@ -279,17 +282,20 @@ def add_admin():
     cur = conn.cursor()
 
     # ✅ Hash the password
-    hashed_password = bcrypt.hashpw(
-        password.encode("utf-8"), bcrypt.gensalt()
-    ).decode("utf-8")
+    hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode(
+        "utf-8"
+    )
 
     try:
         # ✅ Try to insert only if it doesn't exist already
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO admins (email, password)
             VALUES (%s, %s)
             ON CONFLICT (email) DO NOTHING
-        """, (email, hashed_password))
+        """,
+            (email, hashed_password),
+        )
         conn.commit()
 
         # ✅ Check if the insert succeeded
@@ -306,7 +312,6 @@ def add_admin():
         conn.close()
 
     return redirect(url_for("admin_panel"))
-
 
 
 # ------------------------ Admin: Update Password & Passcode ------------------------
@@ -566,6 +571,9 @@ def user_reset_password(token):
     return render_template("user_reset_password.html", token=token)
 
 
+ALLOWED_PARAMETERS = {"TENSILE", "COMPRESSION", "MULLINS", "DMA", "TFA"}
+
+
 @app.route("/upload_inc_file", methods=["POST"])
 def upload_inc_file():
     if "admin_email" not in session:
@@ -586,14 +594,33 @@ def upload_inc_file():
     os.makedirs("uploads", exist_ok=True)
     file.save(filepath)
 
-    conn = None
-    cur = None
     errors = []
     success_count = 0
+    conn = cur = None
 
     try:
         with open(filepath, "r") as f:
             lines = [line.strip() for line in f if line.strip()]
+
+        # ✅ Validate physical parameter
+        if not lines[0].startswith('"') or not lines[0].endswith('"'):
+            flash(
+                '❌ First line must be a quoted physical parameter like "TENSILE".',
+                "error",
+            )
+            return redirect(url_for("admin_panel"))
+
+        physical_parameter = lines[0].strip('"').upper()
+        ALLOWED_PARAMETERS = ["TENSILE", "COMPRESSION", "MULLINS", "DMA", "TFA"]
+        if physical_parameter not in ALLOWED_PARAMETERS:
+            flash(
+                f"❌ Invalid physical parameter '{physical_parameter}'. Allowed: {', '.join(ALLOWED_PARAMETERS)}",
+                "error",
+            )
+            return redirect(url_for("admin_panel"))
+
+        # ✅ Strip out physical parameter line
+        lines = lines[1:]
 
         conn = get_db_connection()
         cur = conn.cursor()
@@ -604,7 +631,7 @@ def upload_inc_file():
 
             if line.upper().startswith("*MATERIAL"):
                 try:
-                    # ✅ Backtrack to find category (PCR, TBR etc.)
+                    # ✅ Get category from preceding **PCR_MATERIALS etc.
                     category = "UNKNOWN"
                     for j in range(i - 1, -1, -1):
                         cat_match = re.search(r"\*+([A-Z0-9]+)_", lines[j])
@@ -612,7 +639,6 @@ def upload_inc_file():
                             category = cat_match.group(1)
                             break
 
-                    # ✅ Compound Name
                     compound_match = re.search(
                         r"name\s*=\s*([A-Z0-9_\-]+)", line, re.IGNORECASE
                     )
@@ -620,6 +646,7 @@ def upload_inc_file():
                         errors.append(f"Line {i+1}: Invalid or missing compound name.")
                         i += 1
                         continue
+
                     compound_name = compound_match.group(1).strip()
                     if not re.match(r"^[A-Z0-9_-]+$", compound_name):
                         errors.append(
@@ -628,13 +655,13 @@ def upload_inc_file():
                         i += 1
                         continue
 
-                    # ✅ Density line check
                     if i + 2 >= len(lines) or not lines[i + 1].upper().startswith(
                         "*DENSITY"
                     ):
                         errors.append(f"Line {i+2}: Missing *DENSITY line.")
                         i += 1
                         continue
+
                     density_line = lines[i + 2]
                     if not re.fullmatch(r"\d+(\.\d+)?E-\d+,", density_line.strip()):
                         errors.append(
@@ -642,9 +669,9 @@ def upload_inc_file():
                         )
                         i += 3
                         continue
+
                     density = density_line.strip().rstrip(",")
 
-                    # ✅ Model & Reduced Polynomial
                     if i + 4 >= len(lines) or (
                         "*HYPERELASTIC" not in lines[i + 3].upper()
                         and "*VISCOELASTIC" not in lines[i + 3].upper()
@@ -654,6 +681,7 @@ def upload_inc_file():
                         )
                         i += 4
                         continue
+
                     model_line = lines[i + 3].upper()
                     model = (
                         "HYPERELASTIC"
@@ -668,8 +696,8 @@ def upload_inc_file():
                         )
                         i += 4
                         continue
-                    n = int(n_match.group(1))
 
+                    n = int(n_match.group(1))
                     poly_line = lines[i + 4]
                     coeffs = [v.strip() for v in poly_line.split(",") if v.strip()]
                     if len(coeffs) != 2 * n or not all(
@@ -683,17 +711,18 @@ def upload_inc_file():
 
                     reduced_polynomial = ",".join(coeffs)
 
-                    # ✅ INSERT or UPDATE existing compound
+                    # ✅ Insert or update with physical_parameter
                     cur.execute(
                         """
-                        INSERT INTO compounds (compound_name, category, density, model, reduced_polynomial, source_file)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        INSERT INTO compounds (compound_name, category, density, model, reduced_polynomial, source_file, physical_parameter)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (compound_name, category, model)
                         DO UPDATE SET
                             density = EXCLUDED.density,
                             reduced_polynomial = EXCLUDED.reduced_polynomial,
-                            source_file = EXCLUDED.source_file
-                    """,
+                            source_file = EXCLUDED.source_file,
+                            physical_parameter = EXCLUDED.physical_parameter
+                        """,
                         (
                             compound_name,
                             category,
@@ -701,6 +730,7 @@ def upload_inc_file():
                             model,
                             reduced_polynomial,
                             filename,
+                            physical_parameter,
                         ),
                     )
 
@@ -708,7 +738,7 @@ def upload_inc_file():
                     i += 6
 
                 except Exception as e:
-                    errors.append(f"Line {i+1}: Unexpected parsing error: {str(e)}")
+                    errors.append(f"Line {i+1}: Unexpected error: {str(e)}")
                     i += 1
             else:
                 i += 1
@@ -724,46 +754,54 @@ def upload_inc_file():
             cur.close()
         if conn:
             conn.close()
+
     if success_count > 0:
-        print(f" logging UPLOAD for: {filename}")
         log_audit("UPLOAD", session.get("admin_email"), None, None, None, filename)
+        flash(f"✅ File uploaded. {success_count} compound(s) processed.", "success")
+
     if errors:
-        for e in errors:
-            flash(f"❌ {e}", "error")
-        flash(
-            f"⚠️ File upload completed with {len(errors)} error(s), {success_count} compound(s) processed.",
-            "error",
-        )
-    else:
-        flash(
-            f"✅ File uploaded successfully. {success_count} compound(s) processed.",
-            "success",
-        )
+        for err in errors:
+            flash(f"❌ {err}", "error")
+        flash(f"⚠️ Completed with {len(errors)} error(s).", "error")
+
     return redirect(url_for("admin_panel"))
 
 
-@app.route("/compound_suggestions")
+@app.route("/compound_suggestions", methods=["GET"])
 def compound_suggestions():
-    prefix = request.args.get("q", "").lower()  # Match 'q' from frontend JavaScript
+    query = request.args.get("q", "").strip()
+    category = request.args.get("category", "").strip()
+    component = request.args.get("component", "").strip()
+    parameter = request.args.get("parameter", "").strip()
+
+    print("✅ Suggestion Query:", category, component, parameter, "query:", query)
+
+    # Ensure required filters are provided
+    if not category or not component or not parameter:
+        return jsonify([])
 
     conn = get_db_connection()
     cur = conn.cursor()
+
     cur.execute(
         """
         SELECT DISTINCT compound_name
         FROM compounds
-        WHERE LOWER(compound_name) LIKE %s
+        WHERE LOWER(category) = LOWER(%s)
+          AND LOWER(component) = LOWER(%s)
+          AND LOWER(physical_parameter) = LOWER(%s)
+          AND LOWER(compound_name) LIKE LOWER(%s)
         ORDER BY compound_name
-        LIMIT 10
-    """,
-        (prefix + "%",),
+        """,
+        (category, component, parameter, f"%{query}%"),
     )
 
-    suggestions = [row[0] for row in cur.fetchall()]
+    results = [row[0] for row in cur.fetchall()]
     cur.close()
     conn.close()
 
-    return jsonify(suggestions)
+    print("✅ Matching results:", results)
+    return jsonify(results)
 
 
 @app.route("/compound_density")
@@ -824,10 +862,12 @@ def get_compound_full_data():
     cur.close()
     conn.close()
 
-    if row:
-        reduced = row[4]
-        coeffs = [x.strip() for x in reduced.split(",") if x.strip()]
-        expected_coeffs = selected_n * 2
+    if not row:
+        return jsonify({"error": "Compound not found"}), 404
+
+    reduced = row[4]
+    coeffs = [x.strip() for x in reduced.split(",") if x.strip() != ""]
+    expected_coeffs = selected_n * 2
 
     if model == "HYPERELASTIC" or model == "VISCOELASTIC":
         if len(coeffs) == expected_coeffs:
@@ -1161,7 +1201,7 @@ def update_compound():
         filename = "MANUAL_UPDATE"
         cur.execute(
             """
-        INSERT INTO compounds (compound_name, category, density, model, reduced_polynomial, source_file)
+        INSERT INTO compounds (compound_name, category, density, model, reduced_polynomial, source_file,
         VALUES (%s, %s, %s, %s, %s, %s)
         ON CONFLICT (compound_name, category, model)
         DO UPDATE SET 
@@ -1589,6 +1629,7 @@ def get_graph_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/upload_points_file", methods=["POST"])
 def upload_points_file():
     if "admin_email" not in session:
@@ -1638,7 +1679,7 @@ def upload_points_file():
                 SELECT y_value FROM graph_points
                 WHERE compound_name = %s AND x_value = %s
                 """,
-                (compound, x)
+                (compound, x),
             )
             result = cur.fetchone()
 
@@ -1652,7 +1693,7 @@ def upload_points_file():
                         SET y_value = %s, source_file = %s
                         WHERE compound_name = %s AND x_value = %s
                         """,
-                        (y, filename, compound, x)
+                        (y, filename, compound, x),
                     )
                     updated += 1
             else:
@@ -1662,12 +1703,14 @@ def upload_points_file():
                     INSERT INTO graph_points (compound_name, x_value, y_value, source_file)
                     VALUES (%s, %s, %s, %s)
                     """,
-                    (compound, x, y, filename)
+                    (compound, x, y, filename),
                 )
                 inserted += 1
 
         conn.commit()
-        flash(f"✅ {inserted} new points added. 🔄 {updated} points updated.", "success")
+        flash(
+            f"✅ {inserted} new points added. 🔄 {updated} points updated.", "success"
+        )
     except Exception as e:
         conn.rollback()
         flash(f"❌ DB error: {e}", "error")
@@ -1716,7 +1759,9 @@ def get_xy_points():
 
     points = [{"x": float(x), "y": float(y)} for x, y in rows]
     return jsonify(points)
-@app.route('/clear_all_graph_points', methods=['POST'])
+
+
+@app.route("/clear_all_graph_points", methods=["POST"])
 def clear_all_graph_points():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -1726,7 +1771,8 @@ def clear_all_graph_points():
     conn.close()
     return jsonify({"message": "✅ All graph points deleted successfully."})
 
-@app.route('/delete_graph_points_by_compound', methods=['POST'])
+
+@app.route("/delete_graph_points_by_compound", methods=["POST"])
 def delete_graph_points_by_compound():
     data = request.get_json()
     compound_name = data.get("compound_name", "").strip()
@@ -1745,7 +1791,70 @@ def delete_graph_points_by_compound():
     if count == 0:
         return jsonify({"message": f"⚠️ No graph points found for '{compound_name}'."})
     else:
-        return jsonify({"message": f"✅ Deleted {count} point(s) for '{compound_name}'."})
+        return jsonify(
+            {"message": f"✅ Deleted {count} point(s) for '{compound_name}'."}
+        )
+
+
+@app.route("/compare_graph_data", methods=["POST"])
+def compare_graph_data():
+    data = request.get_json()
+    compound_name = data.get("compound_name")
+    category = data.get("category")
+    model = data.get("model", "").upper()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT reduced_polynomial FROM compounds
+        WHERE LOWER(compound_name) = LOWER(%s)
+          AND LOWER(category) = LOWER(%s)
+          AND LOWER(model) = LOWER(%s)
+        LIMIT 1
+        """,
+        (compound_name, category, model),
+    )
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not row:
+        return jsonify({"error": "Compound not found"}), 404
+
+    coeffs = [float(x.strip()) for x in row[0].split(",") if x.strip()]
+    graph_points = []
+
+    if model == "HYPERELASTIC":
+        C10 = coeffs[0]
+        C20 = coeffs[1] if len(coeffs) > 1 else 0.0
+        C30 = coeffs[2] if len(coeffs) > 2 else 0.0
+        for λ in [round(1.0 + x * 0.05, 3) for x in range(21)]:
+            strain = λ - 1
+            term = λ**2 + 2 / λ - 3
+            stress = (
+                2 * ((λ**2) - (1 / λ)) * (C10 + 2 * C20 * term + 3 * C30 * (term**2))
+            )
+            graph_points.append({"strain": strain, "stress": stress})
+    elif model == "VISCOELASTIC":
+        D1 = coeffs[0]
+        D2 = coeffs[1] if len(coeffs) > 1 else 0.0
+        D3 = coeffs[2] if len(coeffs) > 2 else 0.0
+        for strain in [round(x * 0.05, 3) for x in range(21)]:
+            stress = D1 * strain + D2 * strain**2 + D3 * strain**3
+            graph_points.append({"strain": strain, "stress": stress})
+    else:
+        return jsonify({"error": "Unsupported model"}), 400
+
+    return jsonify(
+        {
+            "compound_name": compound_name,
+            "category": category,
+            "model": model,
+            "points": graph_points,
+        }
+    )
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)

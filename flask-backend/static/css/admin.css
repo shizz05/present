@@ -5,7 +5,7 @@
 }
 
 body {
-  font-family: Georgia, serif;
+  font-family: 'Roboto', sans-serif;
   background: #b4b4b4;
   min-height: 100vh;
   color: white;
@@ -525,4 +525,9 @@ button.upload-btn {
 
 .logout-fixed button:hover {
   background-color: #cc0000;
+}
+#errorMessage {
+  font-weight: bold;
+  color: #ff4d4d;
+  transition: all 0.2s ease-in-out;
 }
