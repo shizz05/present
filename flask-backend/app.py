@@ -11,6 +11,8 @@ from flask import jsonify
 import re
 import io
 from flask import send_file
+import pandas as pd
+import base64
 
 
 app = Flask(__name__)
@@ -143,9 +145,33 @@ def admin_login():
 # ------------------------ Admin Panel ------------------------
 @app.route("/admin_panel")
 def admin_panel():
-    if "admin_email" not in session:
-        return redirect(url_for("admin_login"))
-    return render_template("admin.html")
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Fetch dropdown values from new structure
+    cur.execute("SELECT DISTINCT category FROM new WHERE category IS NOT NULL")
+    categories = [row[0] for row in cur.fetchall()]
+
+    cur.execute("SELECT DISTINCT component FROM new WHERE component IS NOT NULL")
+    components = [row[0] for row in cur.fetchall()]
+
+    cur.execute(
+        "SELECT DISTINCT physical_parameter FROM new WHERE physical_parameter IS NOT NULL"
+    )
+    physical_parameters = [row[0] for row in cur.fetchall()]
+
+    cur.execute("SELECT DISTINCT model FROM new WHERE model IS NOT NULL")
+    models = [row[0] for row in cur.fetchall()]
+
+    conn.close()
+
+    return render_template(
+        "admin.html",
+        categories=categories,
+        components=components,
+        physical_parameters=physical_parameters,
+        models=models,
+    )
 
 
 # ------------------------ Logout ------------------------
@@ -378,12 +404,12 @@ def user_login():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # 🔍 Check if the user exists in the users table
+        # ✅ Check if the user exists
         cur.execute("SELECT password FROM users WHERE email = %s", (email,))
         row = cur.fetchone()
 
         if row:
-            # ✅ Existing user: verify password
+            # 🔐 Existing verified user - check password
             if bcrypt.checkpw(password.encode("utf-8"), row[0].encode("utf-8")):
                 cur.execute(
                     "INSERT INTO login_logs (email, status) VALUES (%s, 'success')",
@@ -407,23 +433,24 @@ def user_login():
                 conn.close()
                 return redirect(url_for("user_login"))
 
-        # 🔄 User previously existed (was removed): allow re-verification via passcode
+        # 🚧 New user or removed user - require passcode verification
         cur.execute(
-            "SELECT 1 FROM login_logs WHERE email = %s AND status ILIKE 'success' LIMIT 1",
+            "SELECT 1 FROM login_logs WHERE email = %s AND status = 'success' LIMIT 1",
             (email,),
         )
-        existed = cur.fetchone()
-        if existed:
-            session["temp_user_email"] = email
-            session["temp_user_password"] = password
-            flash("Re-verification required. Please enter passcode.", "info")
-            cur.close()
-            conn.close()
-            return redirect(url_for("user_passcode"))
+        already_verified = cur.fetchone()
 
-        # 🆕 New user flow (first-time registration)
         session["temp_user_email"] = email
         session["temp_user_password"] = password
+
+        if already_verified:
+            flash(
+                "Your previous account was removed. Please re-verify with passcode.",
+                "info",
+            )
+        else:
+            flash("First-time login. Please enter admin passcode.", "info")
+
         cur.close()
         conn.close()
         return redirect(url_for("user_passcode"))
@@ -434,61 +461,96 @@ def user_login():
 # Step 2: User enters passcode (only shown for new users)
 @app.route("/user_passcode", methods=["GET", "POST"])
 def user_passcode():
-    if "temp_user_email" not in session or "temp_user_password" not in session:
-        return redirect(url_for("user_login"))
+    from datetime import datetime
+    import pytz
 
-    if request.method == "POST":
-        passcode = request.form["passcode"].strip()
+    if request.method == "GET":
+        return render_template("user_passcode.html")
 
-        conn = get_db_connection()
-        cur = conn.cursor()
+    passcode = request.form.get("passcode")
+    if not passcode:
+        flash("Passcode is required", "error")
+        return redirect(url_for("user_passcode"))
 
-        # Get the registration passcode from settings
-        cur.execute(
-            "SELECT setting_value FROM system_settings WHERE setting_key = 'registration_passcode'"
-        )
-        row = cur.fetchone()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT setting_value, expires_at, used
+        FROM system_settings
+        WHERE setting_key = 'registration_passcode'
+    """
+    )
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
 
-        if not row or row[0] != passcode:
-            flash("Invalid passcode", "error")
-            return render_template("user_passcode.html")
+    if not row:
+        flash("No passcode set by admin.", "error")
+        return redirect(url_for("user_passcode"))
 
-        email = session["temp_user_email"]
-        password = session["temp_user_password"]
+    stored_passcode, expires_at, used = row
 
-        # Check again (safety): if user was somehow registered meanwhile
-        cur.execute("SELECT * FROM users WHERE email = %s", (email,))
-        existing_user = cur.fetchone()
+    # 🕓 Timezone fix
+    ist = pytz.timezone("Asia/Kolkata")
+    now = datetime.now(ist)
+    if expires_at.tzinfo is None:
+        expires_at = ist.localize(expires_at)
 
-        if not existing_user:
-            # Register user
-            hashed_pw = bcrypt.hashpw(
-                password.encode("utf-8"), bcrypt.gensalt()
-            ).decode("utf-8")
-            cur.execute(
-                "INSERT INTO users (email, password) VALUES (%s, %s)",
-                (email, hashed_pw),
-            )
-            flash("User registered successfully.", "success")
-        else:
-            flash("User already registered. Logging you in...", "info")
+    if now > expires_at:
+        flash("Passcode has expired.", "error")
+        return redirect(url_for("user_passcode"))
 
-        # Log login
-        cur.execute(
-            "INSERT INTO login_logs (email, status) VALUES (%s, 'success')",
-            (email,),
-        )
+    if used:
+        flash("Passcode has already been used.", "error")
+        return redirect(url_for("user_passcode"))
 
-        conn.commit()
+    if passcode != stored_passcode:
+        flash("Incorrect passcode.", "error")
+        return redirect(url_for("user_passcode"))
+
+    # ✅ Step 1: Mark passcode as used
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE system_settings
+        SET used = true
+        WHERE setting_key = 'registration_passcode'
+    """
+    )
+    conn.commit()
+
+    # ✅ Step 2: Insert verified user into `users` table
+    email = session.get("temp_user_email")
+    raw_password = session.get("temp_user_password")
+    if not email or not raw_password:
+        flash("Session expired. Please login again.", "error")
         cur.close()
         conn.close()
+        return redirect(url_for("user_login"))
 
-        session["user_email"] = email
-        session.pop("temp_user_email", None)
-        session.pop("temp_user_password", None)
-        return redirect(url_for("user_dashboard"))
+    hashed_password = bcrypt.hashpw(
+        raw_password.encode("utf-8"), bcrypt.gensalt()
+    ).decode("utf-8")
+    cur.execute(
+        "INSERT INTO users (email, password) VALUES (%s, %s)", (email, hashed_password)
+    )
 
-    return render_template("user_passcode.html")
+    # ✅ Step 3: Log success and start user session
+    cur.execute(
+        "INSERT INTO login_logs (email, status) VALUES (%s, 'success')", (email,)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    session["user_email"] = email
+    session["role"] = "user"
+    session.pop("temp_user_email", None)
+    session.pop("temp_user_password", None)
+
+    return redirect(url_for("user_dashboard"))
 
 
 # Dashboard
@@ -571,7 +633,38 @@ def user_reset_password(token):
     return render_template("user_reset_password.html", token=token)
 
 
-ALLOWED_PARAMETERS = {"TENSILE", "COMPRESSION", "MULLINS", "DMA", "TFA"}
+ALLOWED_PARAMETERS = {
+    "TENSILE",
+    "COMPRESSION TEST",
+    "MULLINS TEST",
+    "DMA TEST",
+    "TFA TEST",
+}
+VALID_COMPONENTS = {
+    "BEAD APEX",
+    "CAP PLY",
+    "BELT",
+    "BASE",
+    "BODY PLY",
+    "INNER LINER",
+    "RIM STRIP",
+    "RIM CUSHION",
+    "TREAD",
+    "TECHICAL LAYER",
+    "WING STRIP",
+    "SIDE WALL",
+    "SQUEEZE COMPOUND",
+    "GUM",
+    "HARD APEX",
+    "BEAD CUSHION",
+    "SOFT APEX",
+    "BEAD COAT",
+    "INNER PLY",
+    "BREAKER",
+    "CHAFER",
+    "FLIPPER",
+    "DRUM SQUEEGEE",
+}
 
 
 @app.route("/upload_inc_file", methods=["POST"])
@@ -579,6 +672,14 @@ def upload_inc_file():
     if "admin_email" not in session:
         flash("Unauthorized access", "error")
         return redirect(url_for("admin_login"))
+
+    uploaded_by = request.form.get("uploaded_by")
+    condition = request.form.get("condition")
+
+    # ✅ Step 1: Initialize lists to collect info for audit log
+    compound_names = []
+    categories = set()
+    models = set()
 
     file = request.files.get("inc_file")
     if not file or file.filename == "":
@@ -633,11 +734,32 @@ def upload_inc_file():
                 try:
                     # ✅ Get category from preceding **PCR_MATERIALS etc.
                     category = "UNKNOWN"
+                    component = "UNKNOWN"
+
+                    # Extract category and component
                     for j in range(i - 1, -1, -1):
-                        cat_match = re.search(r"\*+([A-Z0-9]+)_", lines[j])
-                        if cat_match:
-                            category = cat_match.group(1)
-                            break
+                        if category == "UNKNOWN":
+                            cat_match = re.search(r"\*+([A-Z0-9]+)_", lines[j])
+                            if cat_match:
+                                category = cat_match.group(1)
+
+                        # Component line must start with underscore (e.g., _TREAD)
+                        if component == "UNKNOWN" and lines[j].startswith("_"):
+                            raw_comp = lines[j][1:].strip().upper().replace("_", " ")
+                            if raw_comp in VALID_COMPONENTS:
+                                component = raw_comp
+                            else:
+                                errors.append(
+                                    f"Line {j+1}: Invalid component '{lines[j]}'. Not in allowed list."
+                                )
+                                break  # Skip this compound
+
+                    if component == "UNKNOWN":
+                        errors.append(
+                            f"Line {i+1}: Component not found above *MATERIAL line."
+                        )
+                        i += 1
+                        continue
 
                     compound_match = re.search(
                         r"name\s*=\s*([A-Z0-9_\-]+)", line, re.IGNORECASE
@@ -714,10 +836,11 @@ def upload_inc_file():
                     # ✅ Insert or update with physical_parameter
                     cur.execute(
                         """
-                        INSERT INTO compounds (compound_name, category, density, model, reduced_polynomial, source_file, physical_parameter)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO compounds (compound_name, category, component, density, model, reduced_polynomial, source_file, physical_parameter)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (compound_name, category, model)
                         DO UPDATE SET
+                            component = EXCLUDED.component,
                             density = EXCLUDED.density,
                             reduced_polynomial = EXCLUDED.reduced_polynomial,
                             source_file = EXCLUDED.source_file,
@@ -726,6 +849,7 @@ def upload_inc_file():
                         (
                             compound_name,
                             category,
+                            component,
                             density,
                             model,
                             reduced_polynomial,
@@ -733,6 +857,9 @@ def upload_inc_file():
                             physical_parameter,
                         ),
                     )
+                    compound_names.append(compound_name)
+                    categories.add(category)
+                    models.add(model)
 
                     success_count += 1
                     i += 6
@@ -742,6 +869,28 @@ def upload_inc_file():
                     i += 1
             else:
                 i += 1
+
+        # ✅ CORRECT: audit_logs insert happens only once after loop ends
+        if uploaded_by and condition and compound_names:
+            cur.execute(
+                """
+                INSERT INTO audit_logs (
+                    actor_email, action_type, compound_name, category, model,
+                    uploaded_by, condition, file_name, timestamp
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                """,
+                (
+                    session.get("admin_email"),
+                    "UPLOAD",
+                    ", ".join(compound_names),
+                    ", ".join(sorted(categories)),
+                    ", ".join(sorted(models)),
+                    uploaded_by,
+                    condition,
+                    filename,
+                ),
+            )
 
         conn.commit()
 
@@ -755,8 +904,8 @@ def upload_inc_file():
         if conn:
             conn.close()
 
-    if success_count > 0:
-        log_audit("UPLOAD", session.get("admin_email"), None, None, None, filename)
+        # if success_count > 0:
+        # log_audit("UPLOAD", session.get("admin_email"), None, None, None, filename)
         flash(f"✅ File uploaded. {success_count} compound(s) processed.", "success")
 
     if errors:
@@ -898,12 +1047,10 @@ def get_compound_full_data():
         )
 
 
-import matplotlib.pyplot as plt
-import io
-import base64
-
-
 # Function to generate a graph image for Reduced Polynomial data
+import matplotlib.pyplot as plt  # <-- Add this import
+
+
 def generate_reduced_polynomial_graph(coefficients):
     """
     coefficients: list of floats (length 2N, eg: C10, C20..., D1, D2...)
@@ -950,35 +1097,31 @@ graph_image_url = generate_reduced_polynomial_graph(coeffs)
 # You can now embed `graph_image_url` in an <img src="..."> tag in your Flask template
 @app.route("/generate_graph")
 def generate_graph():
-    import matplotlib.pyplot as plt
-    import io
-    from flask import send_file, request
-
-    name = request.args.get("name")
-    category = request.args.get("category")
-    model = request.args.get("model")
-    reduced_poly = request.args.get("reduced_poly")
+    from flask import request, jsonify
 
     try:
-        points = [float(p.strip()) for p in reduced_poly.split(",")]
-        x = list(range(1, len(points) + 1))
-        y = points
+        reduced_poly = request.args.get("reduced_poly", "")
+        coeffs = [float(p.strip()) for p in reduced_poly.split(",") if p.strip() != ""]
+        N = len(coeffs) // 2
+        C = coeffs[:N]
+        D = coeffs[N:]
 
-        fig, ax = plt.subplots()
-        ax.plot(x, y, marker="o")
-        ax.set_title(f"{name} - {category} - {model}")
-        ax.set_xlabel("Coefficient Index")
-        ax.set_ylabel("Value")
-        ax.grid(True)
+        strain = [i * 0.1 for i in range(21)]  # 0 to 2
+        stress = []
 
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png")
-        buf.seek(0)
-        plt.close(fig)
+        for e in strain:
+            W = 0
+            for i in range(N):
+                W += C[i] * (e ** (2 * (i + 1)))
+            for j in range(N):
+                W += D[j] * e
+            stress.append(W)
 
-        return send_file(buf, mimetype="image/png")
+        # Return data as JSON, not image
+        return jsonify([{"strain": s, "stress": st} for s, st in zip(strain, stress)])
+
     except Exception as e:
-        return f"Error generating graph: {e}", 500
+        return jsonify({"error": str(e)}), 500
 
 
 # --- AJAX: SUGGESTIONS FOR COMPOUND DELETE ---
@@ -1145,7 +1288,43 @@ def update_compound():
         density = request.form["density"].strip()
         model = request.form["model"].strip().upper()
         reduced_poly = request.form["reduced_polynomial"].strip()
-        # === Validation Starts ===
+        component = request.form["component"].strip()
+        physical_parameter = request.form["physical_parameter"].strip().upper()
+
+        # === Connect to fetch valid dropdown values ===
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("SELECT DISTINCT component FROM new WHERE component IS NOT NULL")
+        valid_components = [row[0].strip().upper() for row in cur.fetchall()]
+
+        cur.execute(
+            "SELECT DISTINCT physical_parameter FROM new WHERE physical_parameter IS NOT NULL"
+        )
+        valid_parameters = [row[0].strip().upper() for row in cur.fetchall()]
+
+        cur.execute("SELECT DISTINCT model FROM new WHERE model IS NOT NULL")
+        valid_models = [row[0].strip().upper() for row in cur.fetchall()]
+
+        cur.execute("SELECT DISTINCT category FROM new WHERE category IS NOT NULL")
+        valid_categories = [row[0].strip() for row in cur.fetchall()]
+
+        # === Validate user inputs ===
+        if component.upper() not in valid_components:
+            flash(f"❌ Invalid component '{component}' not in allowed list.", "error")
+            return redirect(url_for("admin_panel"))
+
+        if physical_parameter.upper() not in valid_parameters:
+            flash(f"❌ Invalid physical parameter '{physical_parameter}'.", "error")
+            return redirect(url_for("admin_panel"))
+
+        if model.upper() not in valid_models:
+            flash(f"❌ Invalid model '{model}' not in allowed list.", "error")
+            return redirect(url_for("admin_panel"))
+
+        if category not in valid_categories:
+            flash(f"❌ Invalid category '{category}' not in allowed list.", "error")
+            return redirect(url_for("admin_panel"))
 
         # 1. Validate compound name: alphanumeric + underscore
         if not re.match(r"^[A-Za-z0-9_-]+$", compound_name):
@@ -1163,15 +1342,15 @@ def update_compound():
             )
             return redirect(url_for("admin_panel"))
 
-        # 3. Validate model
-        if model not in ["HYPERELASTIC", "VISCOELASTIC"]:
+        # 3. Validate model type logic
+        if model not in valid_models:
             flash(
-                "❌ Unsupported model. Choose either 'Hyperelastic' or 'Viscoelastic'.",
+                f"❌ Unsupported model '{model}'. Add it via the Additional button first.",
                 "error",
             )
             return redirect(url_for("admin_panel"))
 
-        # 4. Validate reduced polynomial by N
+        # 4. Validate reduced polynomial coefficients
         coeffs = [c.strip() for c in reduced_poly.split(",")]
         if model == "HYPERELASTIC":
             if len(coeffs) not in [2, 4, 6]:
@@ -1180,45 +1359,47 @@ def update_compound():
                     "error",
                 )
                 return redirect(url_for("admin_panel"))
-        elif model == "VISCOELASTIC":
-            if len(coeffs) < 1:
-                flash(
-                    "❌ Viscoelastic model requires at least one coefficient.",
-                    "error",
-                )
-                return redirect(url_for("admin_panel"))
+        elif model == "VISCOELASTIC" and len(coeffs) < 1:
+            flash("❌ Viscoelastic model requires at least one coefficient.", "error")
+            return redirect(url_for("admin_panel"))
 
-        # Validate all coefficients are numeric
         for coef in coeffs:
             if not re.match(r"^-?\d+(\.\d+)?$", coef):
                 flash(f"❌ Invalid coefficient value: {coef}", "error")
                 return redirect(url_for("admin_panel"))
 
-        # === DB Insert or Update ===
-        conn = get_db_connection()
-        print("✅ Connected to:", conn.dsn)  # Debugging output
-        cur = conn.cursor()
+        # === Final DB update ===
         filename = "MANUAL_UPDATE"
         cur.execute(
             """
-        INSERT INTO compounds (compound_name, category, density, model, reduced_polynomial, source_file,
-        VALUES (%s, %s, %s, %s, %s, %s)
-        ON CONFLICT (compound_name, category, model)
-        DO UPDATE SET 
-        density = EXCLUDED.density,
-        reduced_polynomial = EXCLUDED.reduced_polynomial,
-        source_file = EXCLUDED.source_file
-        """,
-            (compound_name, category, density, model, reduced_poly, filename),
+            INSERT INTO compounds (compound_name, category, component, density, model, reduced_polynomial, source_file, physical_parameter)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (compound_name, category, model)
+            DO UPDATE SET 
+               component = EXCLUDED.component,
+               density = EXCLUDED.density,
+               reduced_polynomial = EXCLUDED.reduced_polynomial,
+               source_file = EXCLUDED.source_file,
+               physical_parameter = EXCLUDED.physical_parameter
+            """,
+            (
+                compound_name,
+                category,
+                component,
+                density,
+                model,
+                reduced_poly,
+                filename,
+                physical_parameter,
+            ),
         )
 
-        # Log only if it was an update
-
+        # ✅ Log the update
         cur.execute(
             """
-                INSERT INTO audit_logs (actor_email, action_type, compound_name, category, model)
-                VALUES (%s, 'UPDATE', %s, %s, %s)
-                """,
+            INSERT INTO audit_logs (actor_email, action_type, compound_name, category, model)
+            VALUES (%s, 'UPDATE', %s, %s, %s)
+            """,
             (session.get("admin_email"), compound_name, category, model),
         )
 
@@ -1388,7 +1569,7 @@ def user_compound_full_data():
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT compound_name, category, density, model, reduced_polynomial
+        SELECT compound_name, category, component, density, model, reduced_polynomial, physical_parameter
         FROM compounds
         WHERE LOWER(compound_name) = LOWER(%s)
           AND LOWER(category) = LOWER(%s)
@@ -1401,7 +1582,7 @@ def user_compound_full_data():
     conn.close()
 
     if row:
-        reduced = row[4]
+        reduced = row[5]  # reduced_polynomial
         coeffs = [x.strip() for x in reduced.split(",") if x.strip()]
         expected_coeffs = selected_n * 2
         if len(coeffs) == expected_coeffs:
@@ -1409,24 +1590,49 @@ def user_compound_full_data():
                 {
                     "compound_name": row[0],
                     "category": row[1],
-                    "density": row[2],
-                    "model": row[3],
-                    "reduced_polynomial": row[4],
+                    "component": row[2],
+                    "density": row[3],
+                    "model": row[4],
+                    "reduced_polynomial": row[5],
+                    "physical_parameter": row[6],
                 }
             )
         else:
             return (
                 jsonify(
-                    {
-                        "error": "Reduced polynomial data for N={} not found.".format(
-                            selected_n
-                        )
-                    }
+                    {"error": f"Reduced polynomial data for N={selected_n} not found."}
                 ),
                 404,
             )
 
     return jsonify({"error": "Compound not found"}), 404
+
+
+@app.route("/compound_suggestions_filtered")
+def compound_suggestions_filtered():
+    category = request.args.get("category")
+    component = request.args.get("component")
+    physical_param = request.args.get("physical_parameter")
+
+    if not category or not component or not physical_param:
+        return jsonify([])
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT DISTINCT compound_name
+        FROM compounds
+        WHERE LOWER(category) = LOWER(%s)
+          AND LOWER(component) = LOWER(%s)
+          AND LOWER(physical_parameter) = LOWER(%s)
+        """,
+        (category.lower(), component.lower(), physical_param.lower()),
+    )
+    results = [row[0] for row in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return jsonify(results)
 
 
 @app.route("/user_export_multiple_compounds", methods=["POST"])
@@ -1622,7 +1828,9 @@ def get_graph_data():
                 )
 
         else:
-            return jsonify({"error": "Unsupported model"}), 400
+            # Return a placeholder flat line or empty data to avoid crash
+            for strain in [round(x * 0.05, 3) for x in range(21)]:
+                graph_data.append({"strain": strain, "stress": 0})
 
         return jsonify(graph_data)
 
@@ -1745,20 +1953,63 @@ def upload_points_file():
 @app.route("/get_xy_points", methods=["POST"])
 def get_xy_points():
     data = request.get_json()
-    compound_name = data.get("compound_name")
+    name = data.get("compound_name")
+    category = data.get("category")
+    model = data.get("model")
 
     conn = get_db_connection()
     cur = conn.cursor()
+
     cur.execute(
-        "SELECT x_value, y_value FROM graph_points WHERE compound_name = %s",
-        (compound_name,),
+        """
+        SELECT physical_parameter FROM compounds
+        WHERE LOWER(compound_name) = LOWER(%s)
+          AND LOWER(category) = LOWER(%s)
+          AND LOWER(model) = LOWER(%s)
+        """,
+        (name, category, model),
     )
-    rows = cur.fetchall()
+    row = cur.fetchone()
+    if not row:
+        return jsonify([])
+
+    parameter = row[0].upper()
+
+    # Now fetch file path from experimental_files table
+    cur.execute(
+        """
+        SELECT file_path FROM experimental_files
+        WHERE LOWER(compound_name) = LOWER(%s)
+          AND LOWER(physical_parameter) = LOWER(%s)
+        """,
+        (name, parameter),
+    )
+    file_row = cur.fetchone()
     cur.close()
     conn.close()
 
-    points = [{"x": float(x), "y": float(y)} for x, y in rows]
-    return jsonify(points)
+    if not file_row:
+        return jsonify([])
+
+    try:
+        df = pd.read_excel(file_row[0])
+        df = df.iloc[1:]  # Skip unit row
+        df.columns = [col.strip().lower() for col in df.columns]
+
+        points = []
+        for _, row in df.iterrows():
+            try:
+                strain = float(row["strain"])
+                stress = float(row["standard force"])
+                points.append({"x": strain, "y": stress})
+            except Exception as e:
+                continue  # skip bad rows
+
+        return jsonify(points)
+
+    except Exception as e:
+        print("Error reading experimental excel:", e)
+        return jsonify([])
 
 
 @app.route("/clear_all_graph_points", methods=["POST"])
@@ -1854,6 +2105,242 @@ def compare_graph_data():
             "points": graph_points,
         }
     )
+
+
+from werkzeug.utils import secure_filename
+import os
+import pandas as pd
+from flask import request, redirect, flash, url_for
+
+
+@app.route("/upload_experimental_excel", methods=["POST"])
+def upload_experimental_excel():
+    compound_name = request.form.get("compound_name", "").strip().upper()
+    file = request.files.get("experimental_file")
+
+    if not compound_name or not file:
+        flash("Compound name and Excel file are required", "error")
+        return redirect(url_for("admin_panel"))
+
+    allowed_parameters = ["TENSILE", "COMPRESSION", "MULLINS", "DMA", "TFA"]
+    filename = secure_filename(file.filename)
+    base_name = os.path.splitext(filename)[0].upper()
+
+    if base_name not in allowed_parameters:
+        flash(
+            "❌ File name must match one of the allowed physical parameters.", "error"
+        )
+        return redirect(url_for("admin_panel"))
+
+    try:
+        df = pd.read_excel(file, header=None)  # ✅ read raw with no header
+
+        # ✅ Validate required labels and units
+        if (
+            str(df.iloc[0, 0]).strip().lower() != "strain"
+            or str(df.iloc[0, 1]).strip().lower() != "standard force"
+        ):
+            flash("❌ First row must be: Strain, Standard Force", "error")
+            return redirect(url_for("admin_panel"))
+
+        if (
+            str(df.iloc[1, 0]).strip() != "%"
+            or str(df.iloc[1, 1]).strip().upper() != "MPA"
+        ):
+            flash("❌ Second row must be: %, MPa", "error")
+            return redirect(url_for("admin_panel"))
+
+        # ✅ Clean and convert to proper DataFrame with headers
+        clean_df = df.iloc[2:]  # Skip 2 rows (labels + units)
+        clean_df.columns = ["Strain", "Standard Force"]
+
+        # Save Excel to disk
+        save_folder = os.path.join(
+            "uploaded_files", "experimental_excels", compound_name
+        )
+        os.makedirs(save_folder, exist_ok=True)
+        saved_path = os.path.join(save_folder, filename)
+        clean_df.to_excel(saved_path, index=False)
+
+        # ✅ Store path in DB
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO experimental_files (compound_name, physical_parameter, file_path)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (compound_name, physical_parameter) DO UPDATE
+            SET file_path = EXCLUDED.file_path
+        """,
+            (compound_name, base_name, saved_path),
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash("✅ Experimental Excel uploaded successfully", "success")
+        return redirect(url_for("admin_panel"))
+
+    except Exception as e:
+        print("❌ Upload failed:", e)
+        flash("Upload failed. Please check file format and try again.", "error")
+        return redirect(url_for("admin_panel"))
+
+
+@app.route("/add_dropdown_value", methods=["POST"])
+def add_dropdown_value():
+    data = request.get_json()
+    value_type = data.get("type")  # e.g., 'category', 'component', etc.
+    value_name = data.get("name")
+
+    # Validate the input
+    if value_type not in ["category", "component", "physical_parameter", "model"]:
+        return "Invalid type", 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Dynamically insert into the correct column
+        query = f"INSERT INTO new ({value_type}) VALUES (%s)"
+        cur.execute(query, (value_name,))
+        conn.commit()
+        conn.close()
+        return jsonify({"message": "Value added successfully"})
+    except Exception as e:
+        return jsonify({"error": f"Error adding value: {e}"}), 500
+
+
+@app.route("/get_dropdown_values")
+def get_dropdown_values():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Fetch each column individually
+        cur.execute("SELECT DISTINCT category FROM new WHERE category IS NOT NULL")
+        categories = [row[0] for row in cur.fetchall()]
+
+        cur.execute("SELECT DISTINCT component FROM new WHERE component IS NOT NULL")
+        components = [row[0] for row in cur.fetchall()]
+
+        cur.execute(
+            "SELECT DISTINCT physical_parameter FROM new WHERE physical_parameter IS NOT NULL"
+        )
+        parameters = [row[0] for row in cur.fetchall()]
+
+        cur.execute("SELECT DISTINCT model FROM new WHERE model IS NOT NULL")
+        models = [row[0] for row in cur.fetchall()]
+
+        conn.close()
+
+        # Organize as JSON response
+        values = {
+            "category": categories,
+            "component": components,
+            "parameter": parameters,
+            "model": models,
+        }
+
+        return jsonify(values)
+
+    except Exception as e:
+        print("Error fetching dropdown values:", e)
+        return jsonify({"error": "Database error"}), 500
+
+
+@app.route("/generate_passcode", methods=["POST"])
+def generate_passcode():
+    passcode = request.form.get("new_passcode")
+    expiry_minutes = request.form.get("expiry_minutes", type=int, default=15)
+
+    if not passcode:
+        return "Passcode is required", 400
+
+    from datetime import datetime, timedelta
+    import pytz
+
+    # ✅ Get current time in IST
+    ist = pytz.timezone("Asia/Kolkata")
+    expiry_time = datetime.now(ist) + timedelta(minutes=expiry_minutes)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # ✅ Insert or update passcode in system_settings table
+    cur.execute(
+        """
+        INSERT INTO system_settings (setting_key, setting_value, expires_at, used)
+        VALUES ('registration_passcode', %s, %s, false)
+        ON CONFLICT (setting_key) DO UPDATE SET
+            setting_value = EXCLUDED.setting_value,
+            expires_at = EXCLUDED.expires_at,
+            used = false
+        """,
+        (passcode, expiry_time),
+    )
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("admin_panel"))
+
+
+@app.route("/verify_passcode", methods=["POST"])
+def verify_passcode():
+    from datetime import datetime
+    import pytz
+
+    data = request.get_json()
+    entered_code = data.get("passcode")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT setting_value, expires_at, used
+        FROM system_settings
+        WHERE setting_key = 'registration_passcode'
+        """
+    )
+    row = cur.fetchone()
+
+    if not row:
+        return jsonify({"success": False, "message": "No passcode set by admin."})
+
+    stored_code, expiry, used = row
+
+    ist = pytz.timezone("Asia/Kolkata")
+    now_ist = datetime.now(ist)
+
+    # ✅ Ensure both are timezone-aware before comparison
+    if expiry.tzinfo is None:
+        expiry = ist.localize(expiry)
+
+    if now_ist > expiry:
+        return jsonify({"success": False, "message": "Passcode has expired."})
+
+    if used:
+        return jsonify({"success": False, "message": "Passcode has already been used."})
+
+    if entered_code != stored_code:
+        return jsonify({"success": False, "message": "Incorrect passcode."})
+
+    # ✅ Mark passcode as used
+    cur.execute(
+        """
+        UPDATE system_settings
+        SET used = true
+        WHERE setting_key = 'registration_passcode'
+        """
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return jsonify({"success": True})
 
 
 if __name__ == "__main__":

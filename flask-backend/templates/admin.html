@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
 <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
 
@@ -80,16 +81,18 @@
          style="width: 100%; padding: 5px; background: #1c1c2e; color: white; border: 1px solid #444; margin-bottom: 10px;">
   <button type="submit" class="upload-btn">⬆ Upload</button>
 </form>
+<h3 style="color: white;">📊 Upload Experimental Excel</h3>
 
-<!-- Upload Points File (.inc) -->
-<form action="{{ url_for('upload_points_file') }}" method="POST" enctype="multipart/form-data">
-  <label for="points_file" style="color: #ccc; display: block; margin-bottom: 5px;">
-    📌 Upload Points.inc
-  </label>
-  <input type="file" id="points_file" name="points_file" accept=".inc" required
-         style="width: 100%; padding: 5px; background: #1c1c2e; color: white; border: 1px solid #444; margin-bottom: 8px;">
-  <button type="submit" class="upload-btn">⬆ Upload</button>
+<form action="/upload_experimental_excel" method="POST" enctype="multipart/form-data">
+  <label class="label" for="compound_name_experiment">Compound Name</label>
+  <input type="text" name="compound_name" id="compound_name_experiment" class="code-line" required placeholder="e.g. ST412" style="text-transform: uppercase;" />
+
+  <label class="label" for="experimental_file">Upload .xlsx (e.g., TENSILE.xlsx)</label>
+  <input type="file" name="experimental_file" id="experimental_file" accept=".xlsx" class="code-line" required />
+
+  <button type="submit" class="submit-btn" style="margin-top: 10px;">Upload Experimental</button>
 </form>
+
 
   <button class="menu-btn" onclick="toggleUpdate()"><i class="fas fa-edit"></i> Update</button>
   <button class="menu-btn" onclick="toggleDelete()"><i class="fas fa-trash"></i> Delete</button>
@@ -97,6 +100,12 @@
   <button class="menu-btn" onclick="toggleSecurity()"><i class="fas fa-lock"></i> Security</button>
   <button class="menu-btn" onclick="toggleControls()"><i class="fas fa-user-slash"></i> Controls</button>
   <button class="menu-btn" onclick="exportCompound()"><i class="fas fa-file-export"></i> Export</button>
+  <button class="menu-btn" onclick="openAdditionalPopup()">
+  <i class="fas fa-plus-circle"></i> Additional
+</button>
+
+
+
   <button type="button" class="menu-btn" onclick="toggleDatabaseDropdown()">
   <i class="fas fa-database"></i> Database
 <div id="databaseDropdown" class="dropdown-content" style="display: none; margin-left: 10px;">
@@ -107,7 +116,9 @@
   <a href="{{ url_for('view_table', table='users') }}">Users</a>
   <a href="{{ url_for('view_table', table='reset_tokens') }}">Reset Tokens</a>
   <a href="{{ url_for('view_table', table='system_settings') }}">System Settings</a>
-   <a href="{{ url_for('view_table', table='graph_points') }}">graph_points</a>
+  <a href="{{ url_for('view_table', table='graph_points') }}">Graph Points</a>
+
+
 </div>
 </div>
 
@@ -118,54 +129,31 @@
     <!-- Left Panel -->
     <div class="left-panel" style="flex: 1 1 50%; min-width: 300px; padding-right: 20px;">
       <p class="label">Category</p>
-      <select class="dropdown" id="categoryInput" onchange=>
-        <option value="">--Select--</option>
-        <option value="PCR">PCR</option>
-        <option value="TBR">TBR</option>
-        <option value="TBB">TBB</option>
-        <option value="OHT">OHT</option>
-        <option value="2W">2W</option>
-      </select>
+<select class="dropdown" id="categoryInput">
+  <option value="">--Select--</option>
+  {% for category in categories %}
+    <option value="{{ category }}">{{ category }}</option>
+  {% endfor %}
+</select>
+
 
       <!-- ✅ COMPONENT DROPDOWN (compact & responsive) -->
       <p class="label">Component</p>
-      <select class="dropdown" id="componentInput" style="max-width: 100%; font-size: 14px;">
-        <option value="">--Select--</option>
-        <option value="Bead Apex">Bead Apex</option>
-        <option value="Cap Ply">Cap Ply</option>
-        <option value="Belt">Belt</option>
-        <option value="Base">Base</option>
-        <option value="Body Ply">Body Ply</option>
-        <option value="Inner Liner">Inner Liner</option>
-        <option value="Rim Strip">Rim Strip</option>
-        <option value="Rim Cushion">Rim Cushion</option>
-        <option value="Tread">Tread</option>
-        <option value="Techical layer">Techical layer</option>
-        <option value="Wing strip">Wing strip</option>
-        <option value="Side wall">Side wall</option>
-        <option value="Squeeze compound">Squeeze compound</option>
-        <option value="Gum">Gum</option>
-        <option value="Hard apex">Hard apex</option>
-        <option value="Bead cushion">Bead cushion</option>
-        <option value="Soft apex">Soft apex</option>
-        <option value="Bead coat">Bead coat</option>
-        <option value="Inner Ply">Inner Ply</option>
-        <option value="Breaker">Breaker</option>
-        <option value="Chafer">Chafer</option>
-        <option value="Flipper">Flipper</option>
-        <option value="Drum Squeegee">Drum Squeegee</option>
-      </select>
+<select class="dropdown" id="componentInput" style="max-width: 100%; font-size: 14px;">
+  <option value="">--Select--</option>
+  {% for component in components %}
+    <option value="{{ component }}">{{ component }}</option>
+  {% endfor %}
+</select>
+
 
       <p class="label">Physical Parameter</p>
-      <select class="dropdown" id="physicalParamInput">
-        <option value="">--Select--</option>
-        <option value="Tensile">Tensile</option>
-        <option value="Compression">Compression</option>
-        <option value="Mullins">Mullins</option>
-        <option value="DMA">DMA</option>
-        <option value="TFA">TFA</option>
-      </select>
-
+<select class="dropdown" id="physicalParamInput">
+  <option value="">--Select--</option>
+  {% for param in physical_parameters %}
+    <option value="{{ param }}">{{ param }}</option>
+  {% endfor %}
+</select>
       <p class="label">Compound Name</p>
       <input type="text" id="compoundNameInput" class="code-line" autocomplete="off" oninput="checkCompoundName()" />
       <div id="errorMessage" style="color: red; display: none; margin-top: 5px; font-weight: bold;"></div>
@@ -174,13 +162,16 @@
       <div id="compoundSuggestions" class="autocomplete-box"></div>
 
       <!-- Selected Compounds List -->
-      <div id="selectedCompounds" style="margin: 10px 0; color: white;"></div>
-      <p class="label">Model</p>
-      <select class="dropdown" id="modelInput">
-        <option value="">--Select--</option>
-        <option value="Hyperelastic">Hyperelastic</option>
-        <option value="Viscoelastic">Viscoelastic</option>
-      </select>
+       <!-- ✅ For Export -->
+<div id="exportCompounds" style="margin: 10px 0; color: white;"></div>
+     <p class="label">Model</p>
+<select class="dropdown" id="modelInput">
+  <option value="">--Select--</option>
+  {% for model in models %}
+    <option value="{{ model }}">{{ model }}</option>
+  {% endfor %}
+</select>
+
 
       <p class="label">Reduced Polynomial (N)</p>
       <select class="dropdown" id="polynomialInput">
@@ -193,17 +184,25 @@
       <button class="submit-btn" onclick="submitCompound()">SUBMIT</button>
     </div>
 
-    <!-- Right Panel -->
-    <div class="right-panel" style="flex: 1 1 50%; min-width: 300px;">
-      <div class="report">
-        <div class="report-details">
-          <p><strong>Compound Name:</strong> <span id="rCompoundName"></span></p>
-        </div>
-        <div class="graph-container">
-          <h3 class="graph-title">Stress-Strain Curve</h3>
-          <div class="graph-wrapper">
-            <canvas id="stressStrainChart"></canvas>
-          </div>
+<!-- Right Panel -->
+<div class="right-panel" style="flex: 1 1 50%; min-width: 300px;">
+  <div class="report">
+    <div class="report-details">
+      <p><strong>Compound Name:</strong> <span id="rCompoundName"></span></p>
+    </div>
+
+    <div class="graph-container">
+      <h3 class="graph-title">Stress-Strain Curve</h3>
+      <div class="graph-wrapper">
+        <canvas id="stressStrainChart"></canvas>
+      </div>
+
+      <!-- ✅ Move this here inside graph-container -->
+      <div id="selectedCompounds" style="margin-top: 20px; color: white; text-align: center;"></div>
+    </div>
+  </div>
+</div>
+
         </div>
       </div>
     </div>
@@ -240,29 +239,23 @@
 
 
   <div class="access-container" id="securityContainer">
-    <form action="{{ url_for('admin_security_update') }}" method="POST">
-      <p class="label">New Registration Passcode</p>
-      <input type="text" name="new_passcode" class="code-line" placeholder="Enter new passcode" required />
-      <hr style="margin: 20px 0; border-color: #777;" />
-      <p class="label">Current Password</p>
-      <input type="password" name="current_password" class="code-line" placeholder="Enter current password" required />
-      <p class="label">New Password</p>
-      <input type="password" name="new_password" class="code-line" placeholder="Enter new password" required />
-      <p class="label">Confirm New Password</p>
-      <input type="password" name="confirm_password" class="code-line" placeholder="Re-enter new password" required />
-      <button type="submit" class="submit-btn">UPDATE SECURITY</button>
-    </form>
-  </div>
+    <form action="{{ url_for('generate_passcode') }}" method="POST">
+  <p class="label">New User Registration Passcode</p>
+  <input type="text" name="new_passcode" class="code-line" placeholder="Enter code" required />
+  <p class="label">Expire After (minutes)</p>
+  <input type="number" name="expiry_minutes" class="code-line" value="15" min="1" max="1440" required />
+  <button type="submit" class="submit-btn">SET CODE</button>
+</form>
+
 <div class="access-container" id="deleteContainer">
   <form id="deleteForm" action="{{ url_for('delete_compound') }}" method="POST">
     <p class="label">Delete Type</p>
-    <select id="deleteType" class="dropdown" onchange="toggleDeleteType()" required>
+    <select class="dropdown" name="delete_type" id="deleteType" onchange="toggleDeleteType()" required>
       <option value="">--Select--</option>
       <option value="compound">Compound</option>
       <option value="file">File</option>
     </select>
 
-    <!-- Hidden input -->
     <input type="hidden" name="delete_type" id="delete_type_hidden" />
 
     <!-- ✅ Compound fields -->
@@ -279,14 +272,10 @@
       />
       <div id="deleteSuggestionsBox" class="suggestions-box"></div>
 
+      <!-- ✅ Only ONE deleteCategory dropdown here -->
       <p class="label">Category</p>
-      <select class="dropdown" name="category">
+      <select class="dropdown" name="category" id="deleteCategory">
         <option value="">--Select--</option>
-        <option value="PCR">PCR</option>
-        <option value="TBR">TBR</option>
-        <option value="TBB">TBB</option>
-        <option value="OHT">OHT</option>
-        <option value="2W">2W</option>
       </select>
     </div>
 
@@ -312,24 +301,27 @@
     <input type="text" name="compound_name" class="code-line" placeholder="Enter compound name" required />
 
     <p class="label">Category</p>
-    <select class="dropdown" name="category" required>
-      <option value="">--Select--</option>
-      <option value="PCR">PCR</option>
-      <option value="TBR">TBR</option>
-      <option value="TBB">TBB</option>
-      <option value="OHT">OHT</option>
-      <option value="2W">2W</option>
-    </select>
+  <select class="dropdown" name="category" id="updateCategory" required>
+  <option value="">--Select--</option>
+</select>
+<p class="label">Component</p>
+<select class="dropdown" name="component" id="updateComponent" required>
+  <option value="">--Select--</option>
+</select>
+
+<p class="label">Physical Parameter</p>
+<select class="dropdown" name="physical_parameter" id="updateParameter" required>
+  <option value="">--Select--</option>
+</select>
 
     <p class="label">Density</p>
     <input type="text" name="density" class="code-line" placeholder="Enter Density" required />
 
     <p class="label">Model</p>
-    <select class="dropdown" name="model" required>
-      <option value="">--Select--</option>
-      <option value="Hyperelastic">Hyperelastic</option>
-      <option value="Viscoelastic">Viscoelastic</option>
-    </select>
+   <select class="dropdown" name="model" id="updateModel" required>
+  <option value="">--Select--</option>
+</select>
+
 
     <p class="label">Reduced Polynomial Degree (N)</p>
     <select class="dropdown" name="n_value" required>
@@ -501,7 +493,7 @@ function submitCompound() {
   const name = document.getElementById("compoundNameInput").value.trim();
   const category = document.getElementById("categoryInput").value.trim();
   const model = document.getElementById("modelInput").value.trim();
-  const n = document.getElementById("polynomialInput").value.trim();  // N value
+  const n = document.getElementById("polynomialInput").value.trim();
 
   if (!name || !category || !model || !n) {
     alert("Please fill all fields before submitting.");
@@ -510,13 +502,7 @@ function submitCompound() {
 
   const modelFormatted = model.toUpperCase();
 
-console.log({
-  compound_name: name,
-  category: category,
-  model: modelFormatted,
-  n: n
-});
-fetch("/compound_full_data", {
+  fetch("/compound_full_data", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -531,69 +517,132 @@ fetch("/compound_full_data", {
       return res.json();
     })
     .then(data => {
-      // Fill the right panel
+      const compoundId = `checkbox-${data.compound_name}-${data.category}-${data.model}`;
+      const compoundKey = `${data.compound_name}_${data.category}_${data.model}`;
       document.getElementById("rCompoundName").textContent = data.compound_name || "";
 
-      // Create a unique checkbox id
-      const compoundId = `checkbox-${data.compound_name}-${data.category}-${data.model}`;
-      if (!document.getElementById(compoundId)) {
-        const container = document.getElementById("selectedCompounds");
-        const label = document.createElement("label");
-        label.style.marginRight = "15px";
-        label.style.display = "inline-block";
-        label.innerHTML = `
-          <input type="checkbox" id="${compoundId}" checked
-            data-name="${data.compound_name}"
-            data-category="${data.category}"
-            data-model="${data.model}">
-          ${data.compound_name}
-        `;
-        container.appendChild(label);
+      const rawCoeffs = (data.reduced_polynomial || "").split(",");
+      const coeffs = rawCoeffs.map(s => parseFloat(s.trim())).filter(c => !isNaN(c));
+
+      // ✅ Proceed if reduced_polynomial is valid
+      if (coeffs.length === 0) {
+        alert("No valid Reduced Polynomial coefficients found.");
+        return;
       }
-       const modelUpper = data.model.toUpperCase();
-      const coeffs = data.reduced_polynomial
-        .split(",")
-        .map(s => s.trim())
-        .filter(s => s !== "")
-        .slice(0, 3);  // Use first 3 coefficients only
 
-       return fetch("/get_graph_data", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: model.toUpperCase(),
-      reduced_polynomial: coeffs
-    })
-  })
-  .then(res => res.json())
-  .then(generatedGraph => {
-    // Now fetch user-uploaded XY points
-    return fetch("/get_xy_points", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        compound_name: data.compound_name,
-        category: data.category,
-        model: data.model
+      // ✅ Fetch graph
+      return fetch("/get_graph_data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: modelFormatted,
+          reduced_polynomial: coeffs
+        })
       })
-    })
-    .then(res => res.json())
-    .then(userPoints => {
-      drawGraph({
-        generated: generatedGraph,
-        user_points: userPoints || []
-      });
-    });
-  });
-})
-.catch(err => {
-  console.error("Submit Error:", err);
-  alert("Failed to fetch compound details or graph data.");
-});
+      .then(res => res.json())
+      .then(generatedGraph => {
+        // ✅ Fetch experimental XY points
+        return fetch("/get_xy_points", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            compound_name: data.compound_name,
+            category: data.category,
+            model: data.model
+          })
+        })
+        .then(res => res.json())
+        .then(userPoints => {
+          // ✅ Export checkbox
+          const exportContainer = document.getElementById("exportCompounds");
+          if (!document.getElementById(compoundId + "-export")) {
+            const exportLabel = document.createElement("label");
+            exportLabel.style.marginRight = "12px";
+            exportLabel.innerHTML = `
+              <input type="checkbox" id="${compoundId}-export" checked
+                data-name="${data.compound_name}"
+                data-category="${data.category}"
+                data-model="${data.model}">
+              ${data.compound_name}
+            `;
+            exportContainer.appendChild(exportLabel);
+          }
 
+          // ✅ Graph toggle checkbox
+          const graphContainer = document.getElementById("selectedCompounds");
+          if (!document.getElementById(compoundKey)) {
+            const graphLabel = document.createElement("label");
+            graphLabel.style.marginRight = "12px";
+            graphLabel.innerHTML = `
+              <input type="checkbox" id="${compoundKey}" checked
+                onchange="toggleCompoundGraph('${compoundKey}')">
+              ${data.compound_name}
+            `;
+            graphContainer.appendChild(graphLabel);
+          }
+
+          // ✅ Add to global dataset
+          allFittedData[compoundKey] = {
+            label: data.compound_name,
+            data: generatedGraph.map(d => ({ x: d.strain, y: d.stress })),
+            backgroundColor: getRandomColor(),
+            pointRadius: 3,
+            showLine: false
+          };
+
+          drawFittedGraph();
+        });
+      });
+    })
+    .catch(err => {
+      console.error("Submit Error:", err);
+      alert("Failed to fetch compound details or graph data.");
+    });
+}
+
+
+function toggleCompoundGraph(compoundKey) {
+  drawFittedGraph();
+}
+
+function drawFittedGraph() {
+  const ctx = document.getElementById("stressStrainChart").getContext("2d");
+  if (stressChart) stressChart.destroy();
+
+  const datasets = Object.entries(allFittedData)
+    .filter(([key]) => document.getElementById(key)?.checked)
+    .map(([_, data]) => data);
+
+  stressChart = new Chart(ctx, {
+    type: "scatter",
+    data: { datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: "white" } },
+        zoom: {
+          pan: { enabled: true, mode: "xy" },
+          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "xy" }
+        }
+      },
+      onClick: (e) => {
+        if (e.native?.detail === 2) stressChart.resetZoom();
+      },
+      scales: {
+        x: { title: { display: true, text: "Strain (ε)", color: "#fff" }, ticks: { color: "#ccc" }, grid: { color: "#444" } },
+        y: { title: { display: true, text: "Stress (σ)", color: "#fff" }, ticks: { color: "#ccc" }, grid: { color: "#444" } }
+      }
+    }
+  });
+} // <-- This closes drawFittedGraph
+
+function getRandomColor() {
+  const colors = ["#FF6384", "#36A2EB", "#FFCE56", "#9966FF", "#00C49F", "#FF9F40"];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
 
 let stressChart = null;
-
+let allFittedData = {};  
 function drawGraph(graphData) {
   const canvas = document.getElementById('stressStrainChart');
   const ctx = canvas.getContext('2d');
@@ -608,95 +657,95 @@ function drawGraph(graphData) {
   const modelXY = modelData.map(d => ({ x: d.strain, y: d.stress }));
   const userXY = userData.map(d => ({ x: d.x, y: d.y }));
 
- stressChart = new Chart(ctx, {
-  type: 'scatter',
-  data: {
-    datasets: [
-      {
-        label: 'Fitted',
-        data: modelXY,
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: '#EE82EE',
-        pointRadius: 3,             // Show visible dots
-        pointHoverRadius: 6,        // Enlarge on hover
-        borderWidth: 0,             // No line
-        showLine: false             // Dots only
-      },
-      ...(userXY.length > 0 ? [{
-        label: 'Experimental',
-        data: userXY,
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 1)',
-        pointRadius: 0,             // Hide dots visually
-        pointHoverRadius: 5,        // But show tooltip when hovered
-        borderWidth: 2,
-        tension: 0.3,
-        showLine: true              // Line only
-      }] : [])
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        labels: { color: 'white' }
-      },
-      zoom: {
-        pan: {
-          enabled: true,
-          mode: 'xy',
-          speed: 20,
-          threshold: 10
+  stressChart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: 'Fitted',
+          data: modelXY,
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: '#EE82EE',
+          pointRadius: 3,             // Show visible dots
+          pointHoverRadius: 6,        // Enlarge on hover
+          borderWidth: 0,             // No line
+          showLine: false             // Dots only
+        },
+        ...(userXY.length > 0 ? [{
+          label: 'Experimental',
+          data: userXY,
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 1)',
+          pointRadius: 0,             // Hide dots visually
+          pointHoverRadius: 5,        // But show tooltip when hovered
+          borderWidth: 2,
+          tension: 0.3,
+          showLine: true              // Line only
+        }] : [])
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: 'white' }
         },
         zoom: {
-          wheel: { enabled: true, speed: 0.2 },
-          pinch: { enabled: true },
-          mode: 'xy'
+          pan: {
+            enabled: true,
+            mode: 'xy',
+            speed: 20,
+            threshold: 10
+          },
+          zoom: {
+            wheel: { enabled: true, speed: 0.2 },
+            pinch: { enabled: true },
+            mode: 'xy'
+          }
+        },
+        tooltip: {
+          enabled: true,
+          mode: 'nearest',
+          intersect: false
         }
       },
-      tooltip: {
-        enabled: true,
+      hover: {
         mode: 'nearest',
         intersect: false
-      }
-    },
-    hover: {
-      mode: 'nearest',
-      intersect: false
-    },
-    onClick: function (event) {
-      if (event.native?.detail === 2) {
-        stressChart.resetZoom();
-      }
-    },
-    scales: {
-      x: {
-        type: 'linear',
-        title: {
-          display: true,
-          text: 'Strain (ε)',
-          color: '#fff'
-        },
-        ticks: { color: '#ccc' },
-        grid: { color: '#444' }
       },
-      y: {
-        title: {
-          display: true,
-          text: 'Stress (σ)',
-          color: '#fff'
+      onClick: function (event) {
+        if (event.native?.detail === 2) {
+          stressChart.resetZoom();
+        }
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          title: {
+            display: true,
+            text: 'Strain (ε)',
+            color: '#fff'
+          },
+          ticks: { color: '#ccc' },
+          grid: { color: '#444' }
         },
-        ticks: { color: '#ccc' },
-        grid: { color: '#444' }
+        y: {
+          title: {
+            display: true,
+            text: 'Stress (σ)',
+            color: '#fff'
+          },
+          ticks: { color: '#ccc' },
+          grid: { color: '#444' }
+        }
       }
     }
-  }
-});
+  });
 }
-}
+
 function exportCompound() {
-  const checkboxes = document.querySelectorAll("#selectedCompounds input[type='checkbox']:checked");
+  const checkboxes = document.querySelectorAll("#exportCompounds input[type='checkbox']:checked");
   if (checkboxes.length === 0) {
     alert("Please select at least one compound to export.");
     return;
@@ -730,12 +779,13 @@ function exportCompound() {
       console.error("Export error:", err);
       alert("Export failed.");
     });
-  }
+}
+
 function confirmLogout() {
-    if (confirm("Are you sure you want to log out?\nYou will lose all access.")) {
-      window.location.href = "/logout";
-    }
+  if (confirm("Are you sure you want to log out?\nYou will lose all access.")) {
+    window.location.href = "/logout";
   }
+}
 </script>
 <script>
 function checkCompoundName() {
@@ -903,17 +953,21 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  const uploadForms = document.querySelectorAll("form[action*='upload']");
-  uploadForms.forEach(form => {
-    const btn = form.querySelector("button[type='submit']");
-    if (btn) {
-      btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        confirmUpload(() => form.submit());
-      });
-    }
-  });
-});
+// Add confirmation for upload forms (if any exist)
+const uploadForms = document.querySelectorAll("form[action*='upload']");
+uploadForms.forEach(form => {
+  const btn = form.querySelector("button[type='submit']");
+  if (btn) {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      // Save reference to form
+      window.targetUploadForm = form;
+      document.getElementById("detailsPopup").style.display = "flex";
+    });
+  }
+}); // <-- Close forEach
+}); // <-- Close DOMContentLoaded event listener
+
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -964,5 +1018,230 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 </script>
+<script>
+function submitUploadDetails() {
+  const name = document.getElementById("uploadedBy").value.trim();
+  const condition = document.getElementById("uploadCondition").value.trim();
+
+  if (!name || !condition) {
+    alert("Please fill all fields.");
+    return;
+  }
+
+  // Append hidden inputs to form
+  const form = window.targetUploadForm;
+  let hidden1 = document.createElement("input");
+  hidden1.type = "hidden";
+  hidden1.name = "uploaded_by";
+  hidden1.value = name;
+
+  let hidden2 = document.createElement("input");
+  hidden2.type = "hidden";
+  hidden2.name = "condition";
+  hidden2.value = condition;
+
+  form.appendChild(hidden1);
+  form.appendChild(hidden2);
+
+  document.getElementById("detailsPopup").style.display = "none";
+
+  confirmUpload(() => form.submit());
+function showAdditionalPopup() {
+  document.getElementById("additionalPopup").style.display = "flex";
+}
+function closeAdditionalPopup() {
+  document.getElementById("additionalPopup").style.display = "none";
+}
+function submitNewEntry() {
+  const type = document.getElementById("typeSelect").value;
+  const value = document.getElementById("newEntry").value.trim();
+  if (!type || !value) return alert("Please fill both fields");
+
+  fetch("/add_dropdown_value", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type, value })
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert(data.message);
+    closeAdditionalPopup();
+  });
+}
+}
+</script>
+<script>
+// ✅ This opens the popup when you click "Additional"
+function openAdditionalPopup() {
+  document.getElementById("additionalPopup").style.display = "flex";
+}
+
+// ✅ This submits the new category/component/etc. to backend
+function submitNewMetadata() {
+  const type = document.getElementById("metaType").value;
+  const value = document.getElementById("metaValue").value.trim();
+
+  if (!type || !value) {
+    alert("Please fill in both fields.");
+    return;
+  }
+
+  fetch("/add_dropdown_value", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ type, name: value })  // fixed here
+})
+.then(response => response.json())
+.then(data => {
+  if (data.message) {
+    alert(data.message);
+    document.getElementById("additionalPopup").style.display = "none";
+    document.getElementById("metaValue").value = ""; // Clear input
+    loadDropdownValues(); // 🔁 refresh dropdowns after adding new value
+  } else {
+    alert("Error: " + (data.error || "Unknown error"));
+  }
+})
+.catch(error => {
+  console.error("Error:", error);
+  alert("Failed to add value.");
+});
+}
+</script>
+<script>
+function loadDropdownValues() {
+  fetch('/get_dropdown_values')
+    .then(response => response.json())
+    .then(data => {
+      // Category
+      const categoryDropdown = document.getElementById("categoryInput");
+      if (categoryDropdown) {
+        categoryDropdown.innerHTML = '<option value="">--Select--</option>';
+        data.category.forEach(cat => {
+          categoryDropdown.innerHTML += `<option value="${cat}">${cat}</option>`;
+        });
+      }
+
+      // Component
+      const componentDropdown = document.getElementById("componentInput");
+      if (componentDropdown) {
+        componentDropdown.innerHTML = '<option value="">--Select--</option>';
+        data.component.forEach(comp => {
+          componentDropdown.innerHTML += `<option value="${comp}">${comp}</option>`;
+        });
+      }
+
+      // Physical Parameter
+      const parameterDropdown = document.getElementById("parameterInput");
+      if (parameterDropdown) {
+        parameterDropdown.innerHTML = '<option value="">--Select--</option>';
+        data.parameter.forEach(p => {
+          parameterDropdown.innerHTML += `<option value="${p}">${p}</option>`;
+        });
+      }
+
+      // Model
+      const modelDropdown = document.getElementById("modelInput");
+      if (modelDropdown) {
+        modelDropdown.innerHTML = '<option value="">--Select--</option>';
+        data.model.forEach(m => {
+          modelDropdown.innerHTML += `<option value="${m}">${m}</option>`;
+        });
+      }
+      loadUpdateDropdowns(data);
+     const deleteCategory = document.getElementById("deleteCategory");
+      if (deleteCategory) {
+        deleteCategory.innerHTML = '<option value="">--Select--</option>';
+        data.category.forEach(cat => {
+          deleteCategory.innerHTML += `<option value="${cat}">${cat}</option>`;
+        });
+      }
+    })
+    .catch(err => {
+      console.error("Failed to load dropdowns:", err);
+    });
+}
+
+</script>
+<script>
+function loadUpdateDropdowns(data) {
+  const fill = (id, list) => {
+    const select = document.getElementById(id);
+    if (select) {
+      select.innerHTML = '<option value="">--Select--</option>';
+      list.forEach(val => {
+        select.innerHTML += `<option value="${val}">${val}</option>`;
+      });
+    }
+  };
+
+  fill("updateCategory", data.category);
+  fill("updateComponent", data.component);
+  fill("updateParameter", data.parameter);
+  fill("updateModel", data.model);
+}
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    loadDropdownValues(); // 🔁 load dropdowns when page loads
+  });
+</script>
+
+
+<div id="detailsPopup" class="popup-overlay" style="display: none;">
+  <div class="popup-box">
+    <h3 style="color:white;">Upload Details</h3>
+    <label style="color:white;">Uploaded By</label>
+    <input type="text" id="uploadedBy" class="code-line" placeholder="Enter your name" required>
+    <label style="color:white;">Condition</label>
+    <input type="text" id="uploadCondition" class="code-line" placeholder="Enter condition" required>
+    <button onclick="submitUploadDetails()" class="submit-btn">Submit</button>
+  </div>
+</div>
+<style>
+.popup-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+.popup-box {
+  background: #222;
+  padding: 20px;
+  border-radius: 10px;
+  width: 300px;
+  box-shadow: 0 0 15px #000;
+}
+.popup-box input {
+  width: 100%;
+  padding: 8px;
+  margin: 10px 0;
+  background: #333;
+  border: none;
+  color: white;
+}
+
+</style>
+
+<div id="additionalPopup" class="popup-overlay" style="display: none;">
+  <div class="popup-box">
+    <h3 style="color:white;">Add New Metadata</h3>
+    <label style="color:white;">Type</label>
+    <select id="metaType" class="code-line">
+      <option value="category">Category</option>
+      <option value="component">Component</option>
+      <option value="physical_parameter">Physical Parameter</option>
+      <option value="model">Model</option>
+    </select>
+    <label style="color:white;">Value</label>
+    <input type="text" id="metaValue" class="code-line" placeholder="Enter value" />
+    <button class="submit-btn" onclick="submitNewMetadata()">Submit</button>
+  </div>
+</div>
 </body>
 </html>

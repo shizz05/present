@@ -59,379 +59,366 @@
       <button class="export-btn" onclick="exportCompound()">EXPORT</button>
     </div>
 
-    <div class="main-content">
-      <!-- Left Panel -->
-      <div class="left-panel">
-        <p class="label">Compound Name</p>
-         <input type="text" id="compoundNameInput" class="code-line" autocomplete="off" oninput="checkCompoundName()" />
-        <div id="errorMessage" style="color: red; display: none; margin-top: 5px; font-weight: bold;"></div>
-        <div id="compoundSuggestions" class="suggestion-box"></div>
+   <!-- Admin Panel Content -->
+<div class="panel-container" style="display: flex; flex-wrap: wrap; align-items: flex-start;">
+  <div class="main-content" style="display: flex; flex-wrap: wrap; width: 100%;">
+    <!-- Left Panel -->
+    <div class="left-panel" style="flex: 1 1 50%; min-width: 300px; padding-right: 20px;">
+      <p class="label">Category</p>
+      <select class="dropdown" id="categoryInput" onchange=>
+        <option value="">--Select--</option>
+        <option value="PCR">PCR</option>
+        <option value="TBR">TBR</option>
+        <option value="TBB">TBB</option>
+        <option value="OHT">OHT</option>
+        <option value="2W">2W</option>
+      </select>
 
-        <p class="label">Category</p>
-        <select class="dropdown" id="categoryInput">
-          <option value="">--Select--</option>
-          <option value="PCR">PCR</option>
-          <option value="TBR">TBR</option>
-          <option value="TBB">TBB</option>
-          <option value="OHT">OHT</option>
-          <option value="2W">2W</option>
-        </select>
+      <!-- ✅ COMPONENT DROPDOWN (compact & responsive) -->
+      <p class="label">Component</p>
+      <select class="dropdown" id="componentInput" style="max-width: 100%; font-size: 14px;">
+        <option value="">--Select--</option>
+        <option value="Bead Apex">Bead Apex</option>
+        <option value="Cap Ply">Cap Ply</option>
+        <option value="Belt">Belt</option>
+        <option value="Base">Base</option>
+        <option value="Body Ply">Body Ply</option>
+        <option value="Inner Liner">Inner Liner</option>
+        <option value="Rim Strip">Rim Strip</option>
+        <option value="Rim Cushion">Rim Cushion</option>
+        <option value="Tread">Tread</option>
+        <option value="Techical layer">Techical layer</option>
+        <option value="Wing strip">Wing strip</option>
+        <option value="Side wall">Side wall</option>
+        <option value="Squeeze compound">Squeeze compound</option>
+        <option value="Gum">Gum</option>
+        <option value="Hard apex">Hard apex</option>
+        <option value="Bead cushion">Bead cushion</option>
+        <option value="Soft apex">Soft apex</option>
+        <option value="Bead coat">Bead coat</option>
+        <option value="Inner Ply">Inner Ply</option>
+        <option value="Breaker">Breaker</option>
+        <option value="Chafer">Chafer</option>
+        <option value="Flipper">Flipper</option>
+        <option value="Drum Squeegee">Drum Squeegee</option>
+      </select>
 
-        <p class="label">Density</p>
-        <input type="text" class="code-line" id="densityInput" placeholder="Auto-filled" readonly />
+      <p class="label">Physical Parameter</p>
+      <select class="dropdown" id="physicalParamInput">
+        <option value="">--Select--</option>
+        <option value="Tensile">Tensile</option>
+        <option value="Compression">Compression</option>
+        <option value="Mullins">Mullins</option>
+        <option value="DMA">DMA</option>
+        <option value="TFA">TFA</option>
+      </select>
+<p class="label">Compound Name</p>
+<input list="compoundSuggestions" id="compoundNameInput" class="dropdown" placeholder="Select or type..." />
+<!-- ✅ Export checkbox container (separate from graph) -->
+<div id="exportCompounds" style="margin: 10px 0; color: white;"></div>
 
-        <p class="label">Model</p>
-        <select class="dropdown" id="modelInput">
-          <option value="">--Select--</option>
-          <option value="Hyperelastic">Hyperelastic</option>
-          <option value="Viscoelastic">Viscoelastic</option>
-        </select>
+<datalist id="compoundSuggestions">
+  <!-- Options will be populated by JS -->
+</datalist>
 
-        <p class="label">Reduced Polynomial (N)</p>
-        <select class="dropdown" id="polynomialDropdown">
-          <option value="">--Select--</option>
-          <option value="1">C10, D1</option>
-          <option value="2">C10, C20, D1, D2</option>
-          <option value="3">C10, C20, C30, D1, D2, D3</option>
-        </select>
+<div id="errorMessage" style="color: red; display: none; margin-top: 5px; font-weight: bold;"></div>
 
-        <button class="submit-btn" onclick="submitCompound()">SUBMIT</button>
-        <div id="selectedCompounds" style="margin-top: 15px;"></div>
-      </div>
+      <div id="compoundSuggestions" class="autocomplete-box"></div>
+      <!-- Under Compound Name input, before Model -->
+      <p class="label">Model</p>
+      <select class="dropdown" id="modelInput">
+        <option value="">--Select--</option>
+        <option value="Hyperelastic">Hyperelastic</option>
+        <option value="Viscoelastic">Viscoelastic</option>
+      </select>
 
-      <!-- Right Panel -->
-      <div class="right-panel">
-        <div class="report">
-          <div class="report-details">
-            <p><strong>Compound Name:</strong> <span id="rCompoundName"></span></p>
-            <p><strong>Category:</strong> <span id="rCategory"></span></p>
-            <p><strong>Density:</strong> <span id="rDensity"></span></p>
-            <p><strong>Model:</strong> <span id="rModel"></span></p>
-            <p><strong>Reduced Polynomial:</strong> <span id="rReducedPolynominal"></span></p>
-          </div>
-<div class="logout-fixed">
-  <button onclick="confirmLogout()">🚪 Logout</button>
-</div>
-          <div class="graph-container">
+      <p class="label">Reduced Polynomial (N)</p>
+      <select class="dropdown" id="polynomialInput">
+        <option value="">--Select--</option>
+        <option value="1">C10, D1</option>
+        <option value="2">C10, C20, D1, D2</option>
+        <option value="3">C10, C20, C30, D1, D2, D3</option>
+      </select>
+
+      <button class="submit-btn" onclick="submitCompound()">SUBMIT</button>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel" style="flex: 1 1 50%; min-width: 300px;">
+      <div class="report">
+        <div class="report-details">
+          <p><strong>Compound Name:</strong> <span id="rCompoundName"></span></p>
+        </div>
+      <div class="graph-container">
   <h3 class="graph-title">Stress-Strain Curve</h3>
   <div class="graph-wrapper">
-    <canvas id="userStressStrainChart"></canvas>
+    <canvas id="stressStrainChart"></canvas>
   </div>
+    <div id="graphToggles" style="margin-top: 20px; color: white; text-align: center;"></div>
+</div>
+
+  <!-- ✅ Checkboxes for toggling graph visibility -->
+  <div id="selectedCompounds" style="margin-top: 20px; color: white; text-align: center;"></div>
 </div>
 
         </div>
       </div>
     </div>
   </div>
-
+</div>
+<div class="logout-fixed">
+  <button onclick="confirmLogout()">🚪 Logout</button>
+</div>
 <script>
-let userStressChart = null;
+    document.querySelectorAll("#categoryInput, #componentInput, #physicalParamInput").forEach(el => {
+      el.addEventListener("change", fetchCompoundSuggestions);
+    });
 
-function drawUserGraph(graphData) {
-  const ctx = document.getElementById('userStressStrainChart').getContext('2d');
+    function fetchCompoundSuggestions() {
+      const cat = document.getElementById("categoryInput").value;
+      const comp = document.getElementById("componentInput").value;
+      const phys = document.getElementById("physicalParamInput").value;
 
-  const modelData = graphData.generated || [];
-  const userData = graphData.user_points || [];
+      if (!cat || !comp || !phys) return;
 
-  const modelXY = modelData.map(d => ({ x: d.strain, y: d.stress }));
-  const userXY = userData.map(d => ({ x: d.x, y: d.y }));
+      fetch(`/compound_suggestions_filtered?category=${cat}&component=${comp}&physical_parameter=${phys}`)
+        .then(res => res.json())
+        .then(data => {
+          const dataList = document.getElementById("compoundSuggestions");
+          dataList.innerHTML = "";
+          data.forEach(name => {
+            const option = document.createElement("option");
+            option.value = name;
+            dataList.appendChild(option);
+          });
+        })
+        .catch(err => console.error("Suggestion error:", err));
+    }
 
-  if (userStressChart) userStressChart.destroy();
+    function submitCompound() {
+      const name = document.getElementById("compoundNameInput").value.trim();
+      const category = document.getElementById("categoryInput").value.trim();
+      const model = document.getElementById("modelInput").value.trim().toUpperCase();
+      const nValue = document.getElementById("polynomialInput").value;
 
-  userStressChart = new Chart(ctx, {
-  type: 'scatter',
-  data: {
-    datasets: [
-      {
-        label: 'Fitted',
-        data: modelXY,
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: '#EE82EE',
-        pointRadius: 3,         // Show dots
-        borderWidth: 0,         // No line thickness
-        showLine: false         // No line
-      },
-      ...(userXY.length > 0 ? [{
-        label: 'Experimental',
-        data: userXY,
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 1)',
-        pointRadius: 0,         // Hide dots
-        borderWidth: 2,         // Show line
-        tension: 0.3,
-        showLine: true          // Line only
-      }] : [])
-    ]
-  },
+      if (!name || !category || !model || !nValue) {
+        alert("Please fill all fields.");
+        return;
+      }
+
+      fetch("/user_compound_full_data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ compound_name: name, category, model, n: nValue })
+      })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("rCompoundName").textContent = data.compound_name;
+
+          const coeffs = (data.reduced_polynomial || "").split(",").map(s => s.trim()).slice(0, 3);
+          return Promise.all([
+            fetch("/get_graph_data",{
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ model: model, reduced_polynomial: coeffs })
+            }).then(r => r.json()),
+            fetch("/get_xy_points", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ compound_name: name, category, model })
+            }).then(r => r.json())
+        ]).then(([generated, user_points]) => {
+          const compoundKey = `${name}_${category}_${model}`;
+          // ✅ Graph toggle checkbox (under graph)
+// ✅ Append to graph checkbox container
+const graphContainer = document.getElementById("graphToggles");
+if (!document.getElementById(compoundKey)) {
+  const label = document.createElement("label");
+  label.style.marginRight = "12px";
+  label.innerHTML = `
+    <input type="checkbox" id="${compoundKey}" checked
+      onchange="toggleCompoundGraph('${compoundKey}')">
+    ${name}
+  `;
+  graphContainer.appendChild(label);
+}
+
+// ✅ Append to export container (separate)
+const exportContainer = document.getElementById("exportCompounds");
+const exportId = compoundKey + "-export";
+if (!document.getElementById(exportId)) {
+  const exportLabel = document.createElement("label");
+  exportLabel.style.marginRight = "12px";
+  exportLabel.innerHTML = `
+    <input type="checkbox" id="${exportId}" checked
+      data-name="${name}" data-category="${category}" data-model="${model}">
+    ${name}
+  `;
+  exportContainer.appendChild(exportLabel);
+}
+
+          allFittedData[compoundKey] = {
+            label: name,
+            data: generated.map(d => ({ x: d.strain, y: d.stress })),
+            backgroundColor: getRandomColor(),
+            pointRadius: 3,
+            showLine: false
+          };
+
+          drawFittedGraph();
+        });
+      })
+      .catch(err => {
+        console.error("Submit error:", err);
+        alert("Compound or graph data fetch failed.");
+      });
+  }
+  
+
+let stressChart = null;
+let allFittedData = {};
+
+function drawFittedGraph() {
+  const ctx = document.getElementById("stressStrainChart").getContext("2d");
+  if (stressChart) stressChart.destroy();
+
+  const datasets = Object.entries(allFittedData)
+    .filter(([key]) => document.getElementById(key)?.checked)
+    .map(([_, dataset]) => dataset);
+
+  stressChart = new Chart(ctx, {
+    type: "scatter",
+    data: { datasets },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          labels: { color: 'white' }
-        },
-        zoom: {
-          pan: {
-            enabled: true,
-            mode: 'xy',
-            speed: 20,
-            threshold: 10
-          },
-          zoom: {
-            wheel: { enabled: true, speed: 0.2 },
-            pinch: { enabled: true },
-            mode: 'xy'
-          }
-        }
-      },
-      onClick: function (event) {
-        if (event.native?.detail === 2) {
-          userStressChart.resetZoom();
-        }
+    plugins: {
+  legend: { labels: { color: "white" } },
+  tooltip: {
+    mode: 'nearest',
+    intersect: false,
+    callbacks: {
+      label: function(context) {
+        const x = context.parsed.x.toFixed(3);
+        const y = context.parsed.y.toFixed(3);
+        return `${context.dataset.label}: ε = ${x}, σ = ${y}`;
+      }
+    }
+  },
+  zoom: {
+    pan: { enabled: true, mode: "xy" },
+    zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "xy" }
+  }
+},
+
+      onClick: (e) => {
+        if (e.native?.detail === 2) stressChart.resetZoom();
       },
       scales: {
-        x: {
-          type: 'linear',
-          title: {
-            display: true,
-            text: 'Strain (ε)',
-            color: '#fff'
-          },
-          ticks: { color: '#ccc' },
-          grid: { color: '#444' }
-        },
-        y: {
-          title: {
-            display: true,
-            text: 'Stress (σ)',
-            color: '#fff'
-          },
-          ticks: { color: '#ccc' },
-          grid: { color: '#444' }
-        }
+        x: { title: { display: true, text: "Strain (ε)", color: "#fff" }, ticks: { color: "#ccc" }, grid: { color: "#444" } },
+        y: { title: { display: true, text: "Stress (σ)", color: "#fff" }, ticks: { color: "#ccc" }, grid: { color: "#444" } }
       }
     }
   });
 }
 
-function autoFillDensity() {
-  const name = document.getElementById("compoundNameInput").value.trim();
-  const category = document.getElementById("categoryInput").value.trim();
-  if (name && category) {
-    fetch(`/compound_density?name=${encodeURIComponent(name)}&category=${encodeURIComponent(category)}`)
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("densityInput").value = data.density || "";
+function toggleCompoundGraph(key) {
+  drawFittedGraph();
+}
+
+function getRandomColor() {
+  const colors = ["#FF6384", "#36A2EB", "#FFCE56", "#9966FF", "#00C49F", "#FF9F40"];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+    function exportCompound() {
+      const checkboxes = document.querySelectorAll("#exportCompounds input[type='checkbox']:checked");
+      if (checkboxes.length === 0) {
+        alert("Please select at least one compound.");
+        return;
+      }
+
+      const payload = Array.from(checkboxes).map(cb => ({
+        compound_name: cb.dataset.name,
+        category: cb.dataset.category,
+        model: cb.dataset.model
+      }));
+
+      fetch("/user_export_multiple_compounds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ compounds: payload })
       })
-      .catch(err => console.error("Density fetch error:", err));
-  }
-}
-
-document.getElementById("compoundNameInput").addEventListener("input", function () {
-  const query = this.value;
-  const suggestionBox = document.getElementById("compoundSuggestions");
-  if (query.length < 1) {
-    suggestionBox.innerHTML = "";
-    return;
-  }
-  fetch(`/compound_suggestions?q=${encodeURIComponent(query)}`)
-    .then(res => res.json())
-    .then(data => {
-      suggestionBox.innerHTML = "";
-      data.forEach(name => {
-        const div = document.createElement("div");
-        div.textContent = name;
-        div.onclick = () => {
-          document.getElementById("compoundNameInput").value = name;
-          suggestionBox.innerHTML = "";
-          autoFillDensity();
-        };
-        suggestionBox.appendChild(div);
+      .then(response => {
+        if (!response.ok) throw new Error("Export failed");
+        return response.blob();
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "user_compounds.inc";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      })
+      .catch(err => {
+        console.error("Export error:", err);
+        alert("Export failed.");
       });
-    });
-});
-
-document.getElementById("compoundNameInput").addEventListener("input", autoFillDensity);
-document.getElementById("categoryInput").addEventListener("change", autoFillDensity);
-
-function submitCompound() {
-  const name = document.getElementById("compoundNameInput").value.trim();
-  const category = document.getElementById("categoryInput").value.trim();
-  const model = document.getElementById("modelInput").value.trim().toUpperCase();
-  const nValue = document.getElementById("polynomialDropdown").value;
-
-  if (!name || !category || !model || !nValue) {
-    alert("Please fill all fields.");
-    return;
-  }
-
-  fetch("/user_compound_full_data", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ compound_name: name, category, model, n: nValue })
-  })
-    .then(res => {
-      if (!res.ok) throw new Error("Compound data not found.");
-      return res.json();
-    })
-    .then(data => {
-      document.getElementById("rCompoundName").textContent = data.compound_name || "";
-      document.getElementById("rCategory").textContent = data.category || "";
-      document.getElementById("rDensity").textContent = data.density || "";
-      document.getElementById("rModel").textContent = data.model || "";
-      document.getElementById("rReducedPolynominal").textContent = data.reduced_polynomial || "";
-      document.getElementById("densityInput").value = data.density || "";
-
-      const compoundId = `cb-${data.compound_name}-${data.category}-${data.model}`;
-      if (!document.getElementById(compoundId)) {
-        const label = document.createElement("label");
-        label.style.marginRight = "12px";
-        label.innerHTML = `
-          <input type="checkbox" id="${compoundId}" checked
-            data-name="${data.compound_name}"
-            data-category="${data.category}"
-            data-model="${data.model}">
-          ${data.compound_name}`;
-        document.getElementById("selectedCompounds").appendChild(label);
-      }
-
-      const coeffs = (data.reduced_polynomial || "")
-        .split(",")
-        .map(s => s.trim())
-        .filter(Boolean)
-        .slice(0, 3); // Only first 3 coefficients needed for graph
-
-      // Fetch both model curve and uploaded user xy-points
-      return Promise.all([
-        fetch("/get_graph_data", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: model,
-            reduced_polynomial: coeffs
-          })
-        }).then(res => res.json()),
-        fetch("/get_xy_points", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            compound_name: data.compound_name,
-            category: data.category,
-            model: data.model
-          })
-        }).then(res => res.json())
-      ]);
-    })
-    .then(([generated, user_points]) => {
-      drawUserGraph({ generated, user_points: user_points || [] });
-    })
-    .catch(err => {
-      console.error("Submit Error:", err);
-      alert("Failed to fetch compound or graph data.");
-    });
-}
-
-function exportCompound() {
-  const checkboxes = document.querySelectorAll("#selectedCompounds input[type='checkbox']:checked");
-  if (checkboxes.length === 0) {
-    alert("Please select at least one compound.");
-    return;
-  }
-
-  const payload = Array.from(checkboxes).map(cb => ({
-    compound_name: cb.dataset.name,
-    category: cb.dataset.category,
-    model: cb.dataset.model
-  }));
-
-  fetch("/user_export_multiple_compounds", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },                                 
-    body: JSON.stringify({ compounds: payload })
-  })
-    .then(response => {
-      if (!response.ok) throw new Error("Export failed");
-      return response.blob();
-    })
-    .then(blob => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "user_compounds.inc";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    })
-    .catch(err => {
-      console.error("Export error:", err);
-      alert("Export failed.");
-    });
-}
-function confirmLogout() {
-    if (confirm("Are you sure you want to log out?\nYou will lose all access.")) {
-      window.location.href = "/logout";
     }
-  }
-</script>
-<script>
-function checkCompoundName() {
-  const name = document.getElementById("compoundNameInput").value.trim();
-  const errorBox = document.getElementById("errorMessage");
 
-  if (!name) {
-    errorBox.style.display = "none";
-    errorBox.textContent = "";
-    return;
+function confirmLogout() {
+  if (confirm("Are you sure you want to log out?\nYou will lose all access.")) {
+    window.location.href = "/logout";
   }
+}
+  </script>
+  <script>
+function loadDropdownValues() {
+  fetch('/get_dropdown_values')
+    .then(response => response.json())
+    .then(data => {
+      // Category
+      const categoryDropdown = document.getElementById("categoryInput");
+      if (categoryDropdown) {
+        categoryDropdown.innerHTML = '<option value="">--Select--</option>';
+        data.category.forEach(cat => {
+          categoryDropdown.innerHTML += `<option value="${cat}">${cat}</option>`;
+        });
+      }
 
-  fetch(`/compound_suggestions?q=${encodeURIComponent(name)}`)
-    .then(res => res.json())
-    .then(suggestions => {
-      const lowerSuggestions = suggestions.map(s => s.toLowerCase());
-      if (lowerSuggestions.includes(name.toLowerCase())) {
-        errorBox.style.display = "none";
-        errorBox.textContent = "";
-      } else {
-        errorBox.textContent = "❌ Compound name not found.";
-        errorBox.style.display = "block";
+      // Component
+      const componentDropdown = document.getElementById("componentInput");
+      if (componentDropdown) {
+        componentDropdown.innerHTML = '<option value="">--Select--</option>';
+        data.component.forEach(comp => {
+          componentDropdown.innerHTML += `<option value="${comp}">${comp}</option>`;
+        });
+      }
+
+      // Physical Parameter
+      const parameterDropdown = document.getElementById("parameterInput");
+      if (parameterDropdown) {
+        parameterDropdown.innerHTML = '<option value="">--Select--</option>';
+        data.parameter.forEach(p => {
+          parameterDropdown.innerHTML += `<option value="${p}">${p}</option>`;
+        });
+      }
+
+      // Model
+      const modelDropdown = document.getElementById("modelInput");
+      if (modelDropdown) {
+        modelDropdown.innerHTML = '<option value="">--Select--</option>';
+        data.model.forEach(m => {
+          modelDropdown.innerHTML += `<option value="${m}">${m}</option>`;
+        });
       }
     })
     .catch(err => {
-      console.error("Error checking compound:", err);
-      errorBox.textContent = "⚠️ Could not check compound name.";
-      errorBox.style.display = "block";
+      console.error("Failed to load dropdowns:", err);
     });
 }
 </script>
-<script>
-document.getElementById("compoundNameInput").addEventListener("input", function () {
-  const query = this.value;
-  const suggestionBox = document.getElementById("compoundSuggestions");
-  if (query.length < 1) {
-    suggestionBox.innerHTML = "";
-    return;
-  }
 
-  fetch(`/compound_suggestions?q=${query}`)
-    .then(res => res.json())
-    .then(data => {
-      suggestionBox.innerHTML = "";
-      data.forEach(item => {
-        const div = document.createElement("div");
-        div.textContent = item;
-        div.onclick = () => {
-          document.getElementById("compoundNameInput").value = item;
-          suggestionBox.innerHTML = "";
-
-          // ✅ Hide error message when user selects a valid compound
-          document.getElementById("errorMessage").style.display = "none";
-
-          autoFillDensity();  // your function to fill density if needed
-        };
-        suggestionBox.appendChild(div);
-      });
-    });
-});
-</script>
 </body>
 </html>

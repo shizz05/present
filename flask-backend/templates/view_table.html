@@ -56,35 +56,7 @@
         }
 
         /* Clear Buttons for graph_points table only */
-        {% if table_name == 'graph_points' %}
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-top: 25px;
-            gap: 15px;
-        }
-
-        .controls input {
-            padding: 10px;
-            border-radius: 6px;
-            border: none;
-            width: 200px;
-        }
-
-        .controls button {
-            padding: 10px 16px;
-            border: none;
-            border-radius: 6px;
-            background-color: red;
-            color: white;
-            cursor: pointer;
-        }
-
-        .controls button:hover {
-            background-color: darkred;
-        }
-        {% endif %}
+        /* Styles for .controls are always included below */
 
         /* Mobile Responsiveness */
         @media screen and (max-width: 600px) {
@@ -96,21 +68,6 @@
                 font-size: 12px;
                 padding: 8px;
             }
-
-            {% if table_name == 'graph_points' %}
-            .controls {
-                flex-direction: column;
-                align-items: center;
-            }
-
-            .controls input {
-                width: 90%;
-            }
-
-            .controls button {
-                width: 90%;
-            }
-            {% endif %}
         }
         .controls {
   display: flex;
